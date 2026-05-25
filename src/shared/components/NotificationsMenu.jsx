@@ -43,7 +43,7 @@ const typeMeta = {
   },
 };
 
-const NotificationsMenu = () => {
+const NotificationsMenu = ({ badgeCountOverride }) => {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
   const { shellData } = useLayoutData();
@@ -80,6 +80,7 @@ const NotificationsMenu = () => {
     }));
 
   const unreadCount = visibleNotifications.filter((item) => !item.read).length;
+  const badgeCount = Math.max(unreadCount, badgeCountOverride || 0);
 
   const groupedNotifications = ["critical", "warning", "info"]
     .map((type) => ({
@@ -118,7 +119,7 @@ const NotificationsMenu = () => {
         aria-label="Open notifications"
       >
         <Bell size={18} />
-        {unreadCount ? <span className="notification-count">{unreadCount}</span> : null}
+        {badgeCount ? <span className="notification-count">{badgeCount}</span> : null}
       </button>
 
       <AnimatePresence>
