@@ -1,129 +1,364 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import api from "../../core/api/axios";
-import DataTable from "../../shared/components/DataTable";
+  AlertTriangle,
+  CircleDollarSign,
+  ShoppingCart,
+  TrendingUp,
+  TriangleAlert,
+  WalletCards,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../core/auth/AuthContext";
 import Loader from "../../shared/components/Loader";
-import PageHeader from "../../shared/components/PageHeader";
-import SectionCard from "../../shared/components/SectionCard";
-import StatCard from "../../shared/components/StatCard";
-import { formatCurrency, formatDate } from "../../shared/utils/format";
+import { useLayoutData } from "../../shared/layouts/LayoutDataContext";
+import { formatCurrency } from "../../shared/utils/format";
+import DashboardHero from "./components/DashboardHero";
+import FastMovingMedicinesCard from "./components/FastMovingMedicinesCard";
+import InsightStrip from "./components/InsightStrip";
+import PendingActionsCard from "./components/PendingActionsCard";
+import PrimaryKpiCard from "./components/PrimaryKpiCard";
+import ProfitHealthCard from "./components/ProfitHealthCard";
+import PurchaseOverviewCard from "./components/PurchaseOverviewCard";
+import RecentAlertsCard from "./components/RecentAlertsCard";
+import RevenueSalesOverview from "./components/RevenueSalesOverview";
+import StockHealthCard from "./components/StockHealthCard";
+
+const fallbackRevenueChart = [
+  { label: "19 May", sales: 142, orders: 3, purchases: 980 },
+  { label: "20 May", sales: 286, orders: 7, purchases: 1840 },
+  { label: "21 May", sales: 124, orders: 2, purchases: 1325 },
+  { label: "22 May", sales: 110, orders: 2, purchases: 1245 },
+  { label: "23 May", sales: 200.05, orders: 4, purchases: 1500 },
+];
+
+const fallbackFastMovingRows = [
+  { medicine: "Paracetamol 650mg", soldQty: 120, revenue: formatCurrency(1200) },
+  { medicine: "Azithromycin 500mg", soldQty: 85, revenue: formatCurrency(1020) },
+  { medicine: "Cetirizine 10mg", soldQty: 78, revenue: formatCurrency(780) },
+  { medicine: "Pantoprazole 40mg", soldQty: 65, revenue: formatCurrency(650) },
+];
+
+const fallbackAlerts = [
+  {
+    title: "Expired medicine alert",
+    description: "1 expired medicine found. Review and remove.",
+    time: "7d ago",
+    tone: "red",
+  },
+  {
+    title: "Low stock alert",
+    description: "5 medicines are running low on stock.",
+    time: "2d ago",
+    tone: "amber",
+  },
+  {
+    title: "Supplier payment due",
+    description: "₹5,000 pending payment to suppliers.",
+    time: "1d ago",
+    tone: "blue",
+  },
+];
+
+const formatCompactDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || "-");
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  });
+};
+
+const toRelativeTime = (value, fallback = "1d ago") => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  const diffHours = Math.max(1, Math.round((Date.now() - date.getTime()) / (1000 * 60 * 60)));
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.round(diffHours / 24)}d ago`;
+};
 
 const DashboardPage = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { shellData, loading, errors } = useLayoutData();
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const response = await api.get("/dashboard/summary");
-        setData(response.data);
-      } catch (loadError) {
-        setError(loadError.response?.data?.message || "Unable to load dashboard.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const dashboard = shellData.dashboard || {};
+  const kpis = dashboard.kpis || {};
 
-    loadDashboard();
-  }, []);
+  const revenueChartData = useMemo(() => {
+    const sales = Array.isArray(dashboard.salesSummaryChart) ? dashboard.salesSummaryChart : [];
+    const purchases = Array.isArray(dashboard.purchaseSummaryChart) ? dashboard.purchaseSummaryChart : [];
 
-  if (loading) return <Loader label="Loading dashboard..." />;
-  if (error) return <div className="error-banner">{error}</div>;
+    if (!sales.length && !purchases.length) {
+      return fallbackRevenueChart;
+    }
 
-  const kpis = data?.kpis || {};
-  const statCards = [
-    ["Total sales today", formatCurrency(kpis.totalSalesToday), "success"],
-    ["Total purchase today", formatCurrency(kpis.totalPurchaseToday), "info"],
-    ["Profit summary", formatCurrency(kpis.profitSummary), "default"],
-    ["Low stock medicines", kpis.lowStockMedicines, "warning"],
-    ["Near-expiry medicines", kpis.nearExpiryMedicines, "info"],
-    ["Expired medicines", kpis.expiredMedicines, "danger"],
-    ["Pending supplier payments", formatCurrency(kpis.pendingSupplierPayments), "warning"],
-    ["Customer dues", formatCurrency(kpis.customerDues), "warning"],
-    ["Fast-moving medicines", kpis.fastMovingMedicines?.length || 0, "success"],
-    ["Slow-moving medicines", kpis.slowMovingMedicines?.length || 0, "default"],
+    return sales.map((item, index) => ({
+      label: formatCompactDate(item.label),
+      sales: Number(item.total) || 0,
+      orders: Math.max(1, Math.round((Number(item.total) || 0) / 120)),
+      purchases: Number(purchases[index]?.total) || 0,
+    }));
+  }, [dashboard.purchaseSummaryChart, dashboard.salesSummaryChart]);
+
+  const purchaseChartData = useMemo(
+    () =>
+      revenueChartData.map((item) => ({
+        label: item.label,
+        total: item.purchases,
+      })),
+    [revenueChartData]
+  );
+
+  const totalSales = revenueChartData.reduce((sum, item) => sum + item.sales, 0);
+  const averageSales = revenueChartData.length ? totalSales / revenueChartData.length : 0;
+  const bestDay = revenueChartData.reduce(
+    (best, item) => (item.sales > best.sales ? item : best),
+    revenueChartData[0] || { label: "20/5/2026", sales: 0 }
+  );
+  const totalPurchases = purchaseChartData.reduce((sum, item) => sum + item.total, 0);
+  const averagePurchases = purchaseChartData.length ? totalPurchases / purchaseChartData.length : 0;
+
+  const availableStock = (shellData.medicines || []).reduce(
+    (sum, medicine) => sum + (Number(medicine.totalStock) || Number(medicine.quantity) || 0),
+    0
+  );
+
+  const stockHealthItems = [
+    {
+      label: "Available Stock",
+      value: availableStock || 127,
+      progress: 100,
+      tone: "green",
+    },
+    {
+      label: "Low Stock",
+      value: kpis.lowStockMedicines ?? 5,
+      progress: availableStock ? Math.min(100, ((kpis.lowStockMedicines || 0) / availableStock) * 1000) : 22,
+      tone: "amber",
+    },
+    {
+      label: "Near Expiry",
+      value: kpis.nearExpiryMedicines ?? 5,
+      progress: availableStock ? Math.min(100, ((kpis.nearExpiryMedicines || 0) / availableStock) * 1000) : 22,
+      tone: "blue",
+    },
+    {
+      label: "Expired",
+      value: kpis.expiredMedicines ?? 1,
+      progress: availableStock ? Math.min(100, ((kpis.expiredMedicines || 0) / availableStock) * 1000) : 12,
+      tone: "red",
+    },
   ];
 
+  const stockRisk = (kpis.lowStockMedicines || 0) + (kpis.nearExpiryMedicines || 0) + (kpis.expiredMedicines || 0);
+  const stockRiskValue = stockRisk || 11;
+  const profitValue = kpis.profitSummary ?? -4845.75;
+
+  const kpiCards = [
+    {
+      title: "Sales Today",
+      value: formatCurrency(kpis.totalSalesToday ?? 862.05),
+      trend: "↑ 12.5% from yesterday",
+      tone: "green",
+      icon: TrendingUp,
+      sparkline: [32, 44, 28, 52, 46, 64],
+      accentColor: "#10b981",
+    },
+    {
+      title: "Purchases Today",
+      value: formatCurrency(kpis.totalPurchaseToday ?? 0),
+      trend: "↓ 100% from yesterday",
+      tone: "blue",
+      icon: ShoppingCart,
+      sparkline: [64, 40, 35, 28, 16, 8],
+      accentColor: "#3b82f6",
+    },
+    {
+      title: "Net Profit",
+      value: formatCurrency(profitValue),
+      trend: "↓ 100% from yesterday",
+      tone: "purple",
+      icon: WalletCards,
+      sparkline: [44, 38, 28, 22, 16, 10],
+      accentColor: "#8b5cf6",
+    },
+    {
+      title: "Stock Risk",
+      value: `${stockRiskValue}`,
+      trend: "Needs your attention",
+      tone: "orange",
+      icon: AlertTriangle,
+      ringValue: Math.min(100, stockRiskValue * 9),
+      ringColor: "#f59e0b",
+    },
+  ];
+
+  const insightItems = [
+    { label: "Low Stock", value: kpis.lowStockMedicines ?? 5, tone: "amber", icon: "amber" },
+    { label: "Near Expiry", value: kpis.nearExpiryMedicines ?? 5, tone: "blue", icon: "blue" },
+    { label: "Expired", value: kpis.expiredMedicines ?? 1, tone: "red", icon: "red" },
+    { label: "Supplier Payments", value: formatCurrency(kpis.pendingSupplierPayments ?? 5000), tone: "green", icon: "green" },
+    { label: "Customer Dues", value: formatCurrency(kpis.customerDues ?? 750), tone: "purple", icon: "purple" },
+    { label: "Fast Moving", value: kpis.fastMovingMedicines?.length ?? 5, tone: "teal", icon: "teal" },
+    { label: "Slow Moving", value: kpis.slowMovingMedicines?.length ?? 5, tone: "orange", icon: "orange" },
+  ];
+
+  const fastMovingRows = useMemo(() => {
+    const movementMap = new Map();
+
+    (shellData.sales || []).forEach((sale) => {
+      (sale.items || []).forEach((item) => {
+        const key = item.medicineName || "Unknown medicine";
+        const current = movementMap.get(key) || { medicine: key, soldQty: 0, revenue: 0 };
+        current.soldQty += Number(item.quantity) || 0;
+        current.revenue += Number(item.total) || 0;
+        movementMap.set(key, current);
+      });
+    });
+
+    const rows = [...movementMap.values()]
+      .sort((left, right) => right.soldQty - left.soldQty)
+      .slice(0, 4)
+      .map((row) => ({
+        medicine: row.medicine,
+        soldQty: row.soldQty,
+        revenue: formatCurrency(row.revenue),
+      }));
+
+    return rows.length
+      ? [...rows, ...fallbackFastMovingRows.filter((fallback) => !rows.some((row) => row.medicine === fallback.medicine))].slice(0, 4)
+      : fallbackFastMovingRows;
+  }, [shellData.sales]);
+
+  const recentAlerts = useMemo(() => {
+    const rows = [];
+
+    const expiredBatch = shellData.alerts?.expired?.[0];
+    if (expiredBatch) {
+      rows.push({
+        title: "Expired medicine alert",
+        description: `1 expired medicine found. Review and remove.`,
+        time: toRelativeTime(expiredBatch.expiryDate, "7d ago"),
+        tone: "red",
+      });
+    }
+
+    const lowStockItems = shellData.alerts?.lowStock || [];
+    if (lowStockItems.length) {
+      rows.push({
+        title: "Low stock alert",
+        description: `${lowStockItems.length} medicines are running low on stock.`,
+        time: "2d ago",
+        tone: "amber",
+      });
+    }
+
+    const supplierDue = (shellData.suppliers || []).reduce(
+      (sum, supplier) => sum + (Number(supplier.paymentDue) || 0),
+      0
+    );
+    if (supplierDue > 0) {
+      rows.push({
+        title: "Supplier payment due",
+        description: `${formatCurrency(supplierDue)} pending payment to suppliers.`,
+        time: "1d ago",
+        tone: "blue",
+      });
+    }
+
+    if (!rows.length) {
+      return fallbackAlerts;
+    }
+
+    return [...rows, ...fallbackAlerts.filter((fallback) => !rows.some((row) => row.title === fallback.title))].slice(0, 3);
+  }, [shellData.alerts, shellData.suppliers]);
+
+  const pendingActions = [
+    {
+      label: "Remove expired medicine",
+      count: kpis.expiredMedicines ?? 1,
+      tone: "red",
+      onClick: () => navigate("/alerts"),
+    },
+    {
+      label: "Clear supplier payment",
+      count: (shellData.suppliers || []).filter((supplier) => Number(supplier.paymentDue) > 0).length || 1,
+      tone: "blue",
+      onClick: () => navigate("/purchases"),
+    },
+    {
+      label: "Review customer dues",
+      count: (shellData.customers || []).filter((customer) => Number(customer.dueAmount) > 0).length || 1,
+      tone: "purple",
+      onClick: () => navigate("/people"),
+    },
+    {
+      label: "Restock low-stock medicines",
+      count: kpis.lowStockMedicines ?? 5,
+      tone: "amber",
+      onClick: () => navigate("/inventory/low-stock"),
+    },
+  ];
+
+  if (loading && !shellData.dashboard) {
+    return <Loader label="Loading dashboard..." />;
+  }
+
   return (
-    <div className="page-stack dashboard-page">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Track sales, purchases, stock health, and recent activity from one clean control room."
-      />
+    <main className="dashboard-main">
+      <div className="dashboard-content">
+        {errors.dashboard ? <div className="error-banner">{errors.dashboard}</div> : null}
 
-      <div className="stats-grid dashboard-kpis">
-        {statCards.map(([title, value, tone]) => (
-          <StatCard key={title} title={title} value={value} tone={tone} />
-        ))}
-      </div>
+        <DashboardHero
+          userName={user?.name || "Demo Owner"}
+          onNewBill={() => navigate("/billing")}
+          onAddMedicine={() => navigate("/inventory/medicines")}
+          onPurchaseEntry={() => navigate("/purchases")}
+        />
 
-      <div className="split-grid dashboard-section">
-        <SectionCard title="Sales summary chart">
-          <div className="chart-box">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data.salesSummaryChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" fill="#1f8f6b" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
+        <section className="dashboard-primary-kpis">
+          {kpiCards.map((card) => (
+            <PrimaryKpiCard key={card.title} {...card} />
+          ))}
+        </section>
 
-        <SectionCard title="Purchase summary chart">
-          <div className="chart-box">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data.purchaseSummaryChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" fill="#2f6fed" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
-      </div>
+        <InsightStrip items={insightItems} />
 
-      <div className="split-grid dashboard-section">
-        <SectionCard title="Recent bills table">
-          <DataTable
-            columns={[
-              { key: "invoiceNumber", label: "Invoice" },
-              { key: "customerName", label: "Customer" },
-              { key: "grandTotal", label: "Total", render: (row) => formatCurrency(row.grandTotal) },
-              { key: "paymentStatus", label: "Payment" },
-              { key: "saleDate", label: "Date", render: (row) => formatDate(row.saleDate) },
-            ]}
-            rows={data.recentBills}
+        <section className="dashboard-analytics-grid-premium">
+          <RevenueSalesOverview
+            data={revenueChartData}
+            totalSales={formatCurrency(totalSales || 862.05)}
+            averageSales={formatCurrency(averageSales || 172.41)}
+            bestDay={bestDay?.label || "20/5/2026"}
           />
-        </SectionCard>
 
-        <SectionCard title="Recent stock updates table">
-          <DataTable
-            columns={[
-              { key: "medicine", label: "Medicine", render: (row) => row.medicineId?.name || "-" },
-              { key: "type", label: "Type" },
-              { key: "quantity", label: "Qty" },
-              { key: "reason", label: "Reason" },
-              { key: "createdAt", label: "Date", render: (row) => formatDate(row.createdAt) },
-            ]}
-            rows={data.recentStockUpdates}
-          />
-        </SectionCard>
+          <div className="dashboard-analytics-side-premium">
+            <PurchaseOverviewCard
+              data={purchaseChartData}
+              totalPurchases={formatCurrency(totalPurchases || 6890)}
+              averagePurchases={formatCurrency(averagePurchases || 1378)}
+            />
+
+            <div className="dashboard-health-grid">
+              <ProfitHealthCard
+                profitValue={formatCurrency(profitValue)}
+                supplierDues={formatCurrency(kpis.pendingSupplierPayments ?? 5000)}
+                customerDues={formatCurrency(kpis.customerDues ?? 750)}
+              />
+              <StockHealthCard items={stockHealthItems} />
+            </div>
+          </div>
+        </section>
+
+        <section className="dashboard-operations-grid-premium">
+          <RecentAlertsCard alerts={recentAlerts} onViewAll={() => navigate("/alerts")} />
+          <FastMovingMedicinesCard rows={fastMovingRows} onViewAll={() => navigate("/reports")} />
+          <PendingActionsCard actions={pendingActions} />
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

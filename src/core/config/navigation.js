@@ -12,7 +12,20 @@ import {
 
 export const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Inventory", path: "/inventory", icon: Package },
+  {
+    label: "Inventory",
+    path: "/inventory",
+    icon: Package,
+    children: [
+      { label: "Overview", path: "/inventory/overview" },
+      { label: "Medicines", path: "/inventory/medicines" },
+      { label: "Stock Movements", path: "/inventory/stock-movements" },
+      { label: "Low Stock", path: "/inventory/low-stock" },
+      { label: "Expiring Soon", path: "/inventory/expiring-soon" },
+      { label: "Returns", path: "/inventory/returns" },
+      { label: "Adjustments", path: "/inventory/adjustments" },
+    ],
+  },
   { label: "Billing", path: "/billing", icon: CircleDollarSign },
   { label: "Purchases", path: "/purchases", icon: ShoppingCart },
   { label: "People", path: "/people", icon: Users },

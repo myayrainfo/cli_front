@@ -1,4 +1,14 @@
+import { navItems } from "../../core/config/navigation";
+import { formatCurrency } from "./format";
+import { buildNotifications } from "./notifications";
+
 const normalize = (value) => String(value || "").toLowerCase().trim();
+
+const joinKeywords = (values = []) =>
+  values
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .filter(Boolean)
+    .join(" ");
 
 const makeEntry = ({
   id,
@@ -8,6 +18,7 @@ const makeEntry = ({
   path,
   icon,
   keywords = [],
+  state,
 }) => ({
   id,
   title,
@@ -15,8 +26,43 @@ const makeEntry = ({
   category,
   path,
   icon,
-  searchText: normalize([title, subtitle, category, ...keywords].join(" ")),
+  state,
+  searchText: normalize([title, subtitle, category, joinKeywords(keywords)].join(" ")),
 });
+
+const buildMetricEntries = (dashboard) => {
+  const kpis = dashboard?.kpis || {};
+
+  return [
+    makeEntry({
+      id: "metric-sales-today",
+      title: "Sales Today",
+      subtitle: `Dashboard metric - ${formatCurrency(kpis.totalSalesToday || 0)}`,
+      category: "Pages",
+      path: "/",
+      icon: "chart",
+      keywords: ["dashboard sales revenue today"],
+    }),
+    makeEntry({
+      id: "metric-purchases-today",
+      title: "Purchases Today",
+      subtitle: `Dashboard metric - ${formatCurrency(kpis.totalPurchaseToday || 0)}`,
+      category: "Pages",
+      path: "/",
+      icon: "shopping",
+      keywords: ["dashboard purchases spend today"],
+    }),
+    makeEntry({
+      id: "metric-stock-risk",
+      title: "Stock Risk",
+      subtitle: `Low ${kpis.lowStockMedicines || 0} / Near expiry ${kpis.nearExpiryMedicines || 0} / Expired ${kpis.expiredMedicines || 0}`,
+      category: "Pages",
+      path: "/",
+      icon: "bell",
+      keywords: ["dashboard stock risk low expiry expired"],
+    }),
+  ];
+};
 
 export const buildSearchIndex = (data) => {
   const medicines = (data.medicines || []).flatMap((medicine) => {
@@ -24,16 +70,19 @@ export const buildSearchIndex = (data) => {
       makeEntry({
         id: `medicine-${medicine._id}`,
         title: medicine.name,
-        subtitle: `${medicine.genericName || medicine.company || "Medicine"} • Rack ${medicine.rackLocation || "-"}`,
+        subtitle: `${medicine.genericName || medicine.company || "Medicine"} - Rack ${medicine.rackLocation || "-"}`,
         category: "Medicines",
         path: "/inventory",
         icon: "pill",
+        state: { globalSearch: { type: "medicine", id: medicine._id, query: medicine.name } },
         keywords: [
+          medicine._id,
           medicine.genericName,
           medicine.company,
           medicine.category,
           medicine.composition,
           medicine.barcodeValue,
+          medicine.rackLocation,
         ],
       }),
     ];
@@ -42,12 +91,13 @@ export const buildSearchIndex = (data) => {
       entries.push(
         makeEntry({
           id: `batch-${batch._id || batch.batchNumber}`,
-          title: `${medicine.name} • ${batch.batchNumber}`,
-          subtitle: `Batch • Qty ${batch.quantity ?? 0} • Exp ${batch.expiryDate?.slice?.(0, 10) || "-"}`,
+          title: `${medicine.name} - ${batch.batchNumber}`,
+          subtitle: `Batch - Qty ${batch.quantity ?? 0} - Exp ${batch.expiryDate?.slice?.(0, 10) || "-"}`,
           category: "Medicines",
           path: "/inventory",
           icon: "package",
-          keywords: [medicine.genericName, medicine.company, batch.batchNumber],
+          state: { globalSearch: { type: "batch", id: batch._id, query: batch.batchNumber } },
+          keywords: [medicine._id, medicine.genericName, medicine.company, batch.batchNumber],
         })
       );
     });
@@ -55,42 +105,21 @@ export const buildSearchIndex = (data) => {
     return entries;
   });
 
-  const customers = (data.customers || []).map((customer) =>
-    makeEntry({
-      id: `customer-${customer._id}`,
-      title: customer.name,
-      subtitle: `Customer • ${customer.phone || "No phone"} • Due ${customer.dueAmount ?? 0}`,
-      category: "Customers",
-      path: "/people",
-      icon: "user",
-      keywords: [customer.phone, customer.address, customer.loyaltyPoints],
-    })
-  );
-
-  const suppliers = (data.suppliers || []).map((supplier) =>
-    makeEntry({
-      id: `supplier-${supplier._id}`,
-      title: supplier.name,
-      subtitle: `Supplier • ${supplier.contactPerson || "Contact"} • Due ${supplier.paymentDue ?? 0}`,
-      category: "Suppliers",
-      path: "/people",
-      icon: "truck",
-      keywords: [supplier.phone, supplier.email, supplier.gstNumber, supplier.companiesSupplied?.join(" ")],
-    })
-  );
-
-  const sales = (data.sales || []).map((sale) =>
+  const bills = (data.sales || []).map((sale) =>
     makeEntry({
       id: `sale-${sale._id}`,
       title: sale.invoiceNumber,
-      subtitle: `Billing • ${sale.customerName || "Walk-in Customer"} • ${sale.paymentStatus}`,
-      category: "Billing",
+      subtitle: `${sale.customerName || "Walk-in Customer"} - ${sale.paymentStatus} - ${formatCurrency(sale.grandTotal)}`,
+      category: "Bills",
       path: "/billing",
       icon: "receipt",
+      state: { globalSearch: { type: "sale", id: sale._id, query: sale.invoiceNumber } },
       keywords: [
+        sale._id,
         sale.customerName,
-        sale.items?.map((item) => item.medicineName).join(" "),
         sale.paymentStatus,
+        sale.paymentMethod,
+        sale.items?.map((item) => item.medicineName),
       ],
     })
   );
@@ -99,126 +128,146 @@ export const buildSearchIndex = (data) => {
     makeEntry({
       id: `purchase-${purchase._id}`,
       title: purchase.purchaseNumber,
-      subtitle: `Purchase • ${purchase.supplierName || "Supplier"} • ${purchase.paymentStatus}`,
+      subtitle: `${purchase.supplierName || "Supplier"} - ${purchase.paymentStatus} - ${formatCurrency(purchase.grandTotal)}`,
       category: "Purchases",
       path: "/purchases",
       icon: "shopping",
+      state: { globalSearch: { type: "purchase", id: purchase._id, query: purchase.purchaseNumber } },
       keywords: [
+        purchase._id,
         purchase.supplierName,
-        purchase.items?.map((item) => `${item.medicineName} ${item.batchNumber}`).join(" "),
+        purchase.paymentStatus,
+        purchase.items?.map((item) => `${item.medicineName} ${item.batchNumber}`),
       ],
     })
   );
 
-  const patients = (data.patients || []).map((patient) =>
+  const people = [
+    ...(data.customers || []).map((customer) =>
+      makeEntry({
+        id: `customer-${customer._id}`,
+        title: customer.name,
+        subtitle: `Customer - ${customer.phone || "No phone"} - Due ${formatCurrency(customer.dueAmount || 0)}`,
+        category: "People",
+        path: "/people",
+        icon: "user",
+        state: { globalSearch: { type: "customer", id: customer._id, query: customer.name } },
+        keywords: [customer._id, customer.phone, customer.address, customer.loyaltyPoints],
+      })
+    ),
+    ...(data.suppliers || []).map((supplier) =>
+      makeEntry({
+        id: `supplier-${supplier._id}`,
+        title: supplier.name,
+        subtitle: `Supplier - ${supplier.phone || "No phone"} - Due ${formatCurrency(supplier.paymentDue || 0)}`,
+        category: "People",
+        path: "/people",
+        icon: "truck",
+        state: { globalSearch: { type: "supplier", id: supplier._id, query: supplier.name } },
+        keywords: [
+          supplier._id,
+          supplier.contactPerson,
+          supplier.phone,
+          supplier.email,
+          supplier.gstNumber,
+          supplier.companiesSupplied,
+        ],
+      })
+    ),
+    ...(data.patients || []).map((patient) =>
+      makeEntry({
+        id: `patient-${patient._id}`,
+        title: patient.name,
+        subtitle: `Patient - ${patient.phone || "No phone"} - ${patient.medicalHistory || "Clinic record"}`,
+        category: "People",
+        path: "/clinic",
+        icon: "stethoscope",
+        state: { globalSearch: { type: "patient", id: patient._id, query: patient.name } },
+        keywords: [patient._id, patient.phone, patient.address, patient.medicalHistory],
+      })
+    ),
+  ];
+
+  const alerts = buildNotifications(data).map((alert) =>
     makeEntry({
-      id: `patient-${patient._id}`,
-      title: patient.name,
-      subtitle: `Patient • ${patient.phone || "No phone"} • ${patient.medicalHistory || "No history"}`,
-      category: "Clinic",
-      path: "/clinic",
-      icon: "stethoscope",
-      keywords: [patient.phone, patient.address, patient.medicalHistory],
+      id: `alert-${alert.id}`,
+      title: alert.title,
+      subtitle: alert.message,
+      category: "Alerts",
+      path: alert.path || "/alerts",
+      icon: alert.type === "critical" ? "bell" : alert.type === "warning" ? "calendar" : "chart",
+      state: { globalSearch: { type: "alert", id: alert.id, query: alert.title } },
+      keywords: [alert.id, alert.type],
     })
   );
 
-  const appointments = (data.appointments || []).map((appointment) =>
+  const reportEntries = (data.reports?.cards || []).map((card) =>
     makeEntry({
-      id: `appointment-${appointment._id}`,
-      title: `Appointment • ${appointment.doctorName || "Doctor"}`,
-      subtitle: `${appointment.status || "Scheduled"} • ${appointment.followUpReminder || "Follow-up reminder"}`,
-      category: "Clinic",
-      path: "/clinic",
-      icon: "calendar",
-      keywords: [appointment.notes, appointment.status, appointment.followUpReminder],
-    })
-  );
-
-  const prescriptions = (data.prescriptions || []).map((prescription) =>
-    makeEntry({
-      id: `prescription-${prescription._id}`,
-      title: `Prescription • ${prescription.doctorName || "Doctor"}`,
-      subtitle: `${prescription.diagnosis || "Diagnosis"} • ${prescription.medicines?.map((item) => item.name).join(", ") || "No medicines"}`,
-      category: "Clinic",
-      path: "/clinic",
-      icon: "file-text",
-      keywords: [
-        prescription.diagnosis,
-        prescription.medicines?.map((item) => `${item.name} ${item.dosage}`).join(" "),
-        prescription.labTests?.map((item) => item.type).join(" "),
-      ],
-    })
-  );
-
-  const shortcuts = [
-    makeEntry({
-      id: "shortcut-dashboard",
-      title: "Dashboard overview",
-      subtitle: "Shortcut • KPIs, sales, stock activity, and alerts",
-      category: "Settings/Shortcuts",
-      path: "/",
-      icon: "home",
-      keywords: ["dashboard sales purchases profit stock"],
-    }),
-    makeEntry({
-      id: "shortcut-reports",
-      title: "Reports and analytics",
-      subtitle: "Shortcut • Daily sales, purchases, and movement insights",
-      category: "Settings/Shortcuts",
+      id: `report-${card.title}`,
+      title: card.title,
+      subtitle: `Report metric - ${card.value}`,
+      category: "Pages",
       path: "/reports",
       icon: "chart",
-      keywords: ["reports analytics gst margins"],
-    }),
+      state: { globalSearch: { type: "report", query: card.title } },
+      keywords: ["reports analytics", card.title],
+    })
+  );
+
+  const pageEntries = navItems.map((item) =>
     makeEntry({
-      id: "shortcut-alerts",
-      title: "Alerts center",
-      subtitle: "Shortcut • Low stock, near expiry, and expired batches",
-      category: "Settings/Shortcuts",
-      path: "/alerts",
-      icon: "bell",
-      keywords: ["low stock expired near expiry alerts"],
-    }),
-    makeEntry({
-      id: "shortcut-settings",
-      title: "Store and billing settings",
-      subtitle: "Shortcut • Profile, GST, branches, and payment placeholders",
-      category: "Settings/Shortcuts",
-      path: "/settings",
-      icon: "settings",
-      keywords: ["settings store gst branches subscription"],
-    }),
-  ];
+      id: `page-${item.path}`,
+      title: item.label,
+      subtitle: `Open ${item.label} workspace`,
+      category: "Pages",
+      path: item.path,
+      icon:
+        item.label === "Dashboard"
+          ? "home"
+          : item.label === "Inventory"
+            ? "package"
+            : item.label === "Billing"
+              ? "receipt"
+              : item.label === "Purchases"
+                ? "shopping"
+                : item.label === "People"
+                  ? "user"
+                  : item.label === "Alerts"
+                    ? "bell"
+                    : item.label === "Reports"
+                      ? "chart"
+                      : item.label === "Clinic"
+                        ? "stethoscope"
+                        : "settings",
+      state: { globalSearch: { type: "page", query: item.label } },
+      keywords: [item.label, item.path],
+    })
+  );
 
   return [
     ...medicines,
-    ...customers,
-    ...suppliers,
-    ...sales,
+    ...bills,
     ...purchases,
-    ...patients,
-    ...appointments,
-    ...prescriptions,
-    ...shortcuts,
+    ...people,
+    ...alerts,
+    ...pageEntries,
+    ...buildMetricEntries(data.dashboard),
+    ...reportEntries,
   ];
 };
 
-const categoryOrder = [
-  "Medicines",
-  "Customers",
-  "Suppliers",
-  "Billing",
-  "Purchases",
-  "Clinic",
-  "Settings/Shortcuts",
-];
+const categoryOrder = ["Medicines", "Bills", "Purchases", "People", "Alerts", "Pages"];
 
 const scoreResult = (result, query) => {
   const title = normalize(result.title);
   const subtitle = normalize(result.subtitle);
+  const text = normalize(result.searchText);
 
-  if (title.startsWith(query)) return 3;
-  if (title.includes(query)) return 2;
-  if (subtitle.includes(query)) return 1;
+  if (title.startsWith(query)) return 6;
+  if (title.includes(query)) return 5;
+  if (subtitle.startsWith(query)) return 4;
+  if (subtitle.includes(query)) return 3;
+  if (text.includes(query)) return 2;
   return 0;
 };
 
@@ -230,12 +279,12 @@ export const searchIndex = (items, query) => {
 
   const filtered = items
     .filter((item) => item.searchText.includes(normalizedQuery))
-    .sort((a, b) => scoreResult(b, normalizedQuery) - scoreResult(a, normalizedQuery));
+    .sort((left, right) => scoreResult(right, normalizedQuery) - scoreResult(left, normalizedQuery));
 
   return categoryOrder
     .map((category) => ({
       category,
-      items: filtered.filter((item) => item.category === category).slice(0, 5),
+      items: filtered.filter((item) => item.category === category).slice(0, 6),
     }))
     .filter((group) => group.items.length);
 };
