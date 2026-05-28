@@ -1946,6 +1946,326 @@ textarea::placeholder {
   gap: 0.75rem;
 }
 
+.billing-page .page-header {
+  align-items: flex-start;
+}
+
+.billing-header-actions .ghost-button,
+.billing-summary-actions .ghost-button,
+.billing-summary-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.billing-success-banner {
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: var(--green-soft);
+  border: 1px solid rgba(31, 184, 116, 0.18);
+  color: #16734a;
+}
+
+.billing-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.28fr) minmax(320px, 0.86fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.billing-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.billing-card {
+  border-radius: 20px;
+}
+
+.billing-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.billing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.billing-field span {
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.billing-field-full {
+  grid-column: 1 / -1;
+}
+
+.billing-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 0.2rem 0.9rem;
+  background: #fbfcff;
+  margin-bottom: 0.9rem;
+}
+
+.billing-search-bar svg {
+  color: var(--muted);
+}
+
+.billing-search-bar input,
+.billing-cart-table input,
+.billing-cart-table select {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.billing-search-bar input:focus,
+.billing-cart-table input:focus,
+.billing-cart-table select:focus {
+  box-shadow: none;
+}
+
+.billing-search-results,
+.billing-dues-list,
+.billing-preview-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.billing-search-item,
+.billing-due-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.billing-search-item strong,
+.billing-due-item strong,
+.billing-medicine-meta h4,
+.billing-preview-head h4 {
+  display: block;
+  margin: 0;
+}
+
+.billing-search-item span,
+.billing-due-item span,
+.billing-medicine-meta p,
+.billing-preview-meta span,
+.billing-batch-card span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.billing-search-item:hover,
+.billing-search-item.active,
+.billing-due-item:hover,
+.billing-due-item.active,
+.billing-batch-card:hover,
+.billing-batch-card.active {
+  transform: translateY(-1px);
+  border-color: rgba(79, 124, 255, 0.35);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.billing-inline-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.billing-medicine-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.billing-medicine-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.billing-batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.85rem;
+}
+
+.billing-batch-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.billing-batch-card.blocked {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);
+}
+
+.billing-batch-head,
+.billing-preview-head,
+.billing-preview-item,
+.billing-summary-list div,
+.billing-expiry-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.billing-warning-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #996100;
+  background: #fff8ee;
+}
+
+.billing-cart-table th,
+.billing-cart-table td {
+  vertical-align: middle;
+}
+
+.billing-expiry-cell {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.billing-summary-card {
+  position: sticky;
+  top: 88px;
+}
+
+.billing-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72rem;
+}
+
+.billing-summary-list.compact {
+  margin-top: 1rem;
+}
+
+.billing-summary-total {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.billing-summary-total strong {
+  font-size: 1.08rem;
+}
+
+.billing-notes-input {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--hover-soft);
+  color: var(--text);
+  padding: 0.88rem 0.95rem;
+}
+
+.billing-summary-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.billing-preview-meta {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.billing-preview-item {
+  align-items: flex-start;
+  padding: 0.82rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid var(--line-soft);
+  background: #fbfcff;
+}
+
+.billing-row-clickable {
+  cursor: pointer;
+}
+
+.billing-row-clickable:hover {
+  background: var(--hover-soft);
+}
+
+@media (max-width: 1220px) {
+  .billing-workspace-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .billing-workspace-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .billing-summary-card {
+    position: static;
+  }
+}
+
+@media (max-width: 820px) {
+  .billing-workspace-grid,
+  .billing-form-grid,
+  .billing-batch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-page .page-header,
+  .billing-medicine-meta,
+  .billing-preview-head,
+  .billing-search-item,
+  .billing-due-item,
+  .billing-preview-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .billing-field-full {
+    grid-column: auto;
+  }
+}
+
 .chart-box {
   width: 100%;
   height: 260px;
