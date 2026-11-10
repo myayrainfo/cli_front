@@ -44,6 +44,7 @@ const InventoryLowStockPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!lowStockItems.length ? <tr><td colSpan={7} className="muted">No matching records.</td></tr> : null}
               {lowStockItems.map((item) => (
                 <tr key={item.id}>
                   <td>{item.name}</td>

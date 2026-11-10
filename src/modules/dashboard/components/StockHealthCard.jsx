@@ -19,9 +19,6 @@ const StockHealthCard = ({ items }) => (
             <span>{item.label}</span>
             <strong>{item.value}</strong>
           </div>
-          <div className="dashboard-stock-health-bar-track">
-            <span className={`dashboard-stock-health-bar tone-${item.tone}`} style={{ width: `${Math.max(8, item.progress)}%` }} />
-          </div>
         </div>
       ))}
     </div>

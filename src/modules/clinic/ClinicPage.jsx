@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../core/api/axios";
+import Badge from "../../shared/components/Badge";
 import DataTable from "../../shared/components/DataTable";
 import Loader from "../../shared/components/Loader";
 import PageHeader from "../../shared/components/PageHeader";
@@ -37,69 +38,80 @@ const ClinicPage = () => {
   if (loading) return <Loader label="Loading clinic module..." />;
 
   return (
-    <div className="page-stack">
+    <div className="page-stack clinic-page">
       <PageHeader
         title="Clinic"
-        subtitle="Add-on clinic workspace for patients, appointments, prescriptions, doctor consultation notes, lab billing placeholders, and follow-up reminders."
+        subtitle="Review patient records, appointments and prescriptions."
       />
 
-      {error ? <div className="error-banner">{error}</div> : null}
+      {error ? <div className="error-banner" role="alert"><strong>Clinic records unavailable</strong><p>{error}</p></div> : null}
 
-      <div className="split-grid">
-        <SectionCard title="Patients">
-          <DataTable
-            columns={[
-              { key: "name", label: "Patient registration" },
-              { key: "phone", label: "Phone" },
-              { key: "medicalHistory", label: "Patient medical history" },
-            ]}
-            rows={patients}
-          />
-        </SectionCard>
+      {!error ? (
+        <div className="clinic-records">
+          <SectionCard title="Patients">
+            <DataTable
+              columns={[
+                { key: "name", label: "Patient", render: (row) => <strong>{row.name || "Not recorded"}</strong> },
+                { key: "phone", label: "Phone" },
+                { key: "medicalHistory", label: "Medical history" },
+              ]}
+              rows={patients}
+              emptyText="No patients found"
+              emptyDescription="No patients were returned by the clinic service."
+            />
+          </SectionCard>
 
-        <SectionCard title="Appointments">
-          <DataTable
-            columns={[
-              { key: "doctorName", label: "Doctor profile" },
-              { key: "appointmentDate", label: "Appointment booking", render: (row) => formatDate(row.appointmentDate) },
-              { key: "status", label: "Status" },
-              { key: "followUpReminder", label: "Follow-up reminders" },
-            ]}
-            rows={appointments}
-          />
-        </SectionCard>
-      </div>
+          <SectionCard title="Appointments">
+            <DataTable
+              columns={[
+                { key: "doctorName", label: "Doctor" },
+                { key: "appointmentDate", label: "Appointment date", render: (row) => formatDate(row.appointmentDate) },
+                { key: "status", label: "Status", render: (row) => <Badge>{row.status || "Not recorded"}</Badge> },
+                { key: "followUpReminder", label: "Follow-up reminder" },
+              ]}
+              rows={appointments}
+              emptyText="No appointments found"
+              emptyDescription="No appointments were returned by the clinic service."
+            />
+          </SectionCard>
 
-      <div className="split-grid">
-        <SectionCard title="Prescriptions">
-          <DataTable
-            columns={[
-              { key: "doctorName", label: "Doctor consultation" },
-              { key: "diagnosis", label: "Prescription generation" },
-              {
-                key: "medicines",
-                label: "Medicines",
-                render: (row) => row.medicines?.map((item) => `${item.name} ${item.dosage}`).join(", "),
-              },
-              {
-                key: "labTests",
-                label: "Lab tests",
-                render: (row) =>
-                  row.labTests?.map((item) => `${item.type} (${item.status})`).join(", ") || "No lab tests",
-              },
-            ]}
-            rows={prescriptions}
-          />
-        </SectionCard>
+          <SectionCard title="Prescriptions">
+            <DataTable
+              columns={[
+                { key: "doctorName", label: "Doctor" },
+                { key: "diagnosis", label: "Diagnosis" },
+                {
+                  key: "medicines",
+                  label: "Medicines",
+                  render: (row) => row.medicines?.length ? (
+                    <ul className="clinic-cell-list">
+                      {row.medicines.map((item, index) => <li key={index}><strong>{item.name}</strong>{item.dosage ? <span> &middot; {item.dosage}</span> : null}</li>)}
+                    </ul>
+                  ) : "No medicines recorded",
+                },
+                {
+                  key: "labTests",
+                  label: "Lab tests",
+                  render: (row) =>
+                    row.labTests?.length ? (
+                      <ul className="clinic-cell-list">
+                        {row.labTests.map((item, index) => <li key={index}>{item.type}{item.status ? <span> &middot; {item.status}</span> : null}</li>)}
+                      </ul>
+                    ) : "No lab tests recorded",
+                },
+              ]}
+              rows={prescriptions}
+              emptyText="No prescriptions found"
+              emptyDescription="No prescriptions were returned by the clinic service."
+            />
+          </SectionCard>
 
-        <SectionCard title="Lab billing">
-          <div className="feature-list">
-            <div className="feature-item">Lab test billing placeholder</div>
-            <div className="feature-item">Doctor consultation placeholder</div>
-            <div className="feature-item">Patient history ready to expand from seeded records</div>
-          </div>
-        </SectionCard>
-      </div>
+        </div>
+      ) : null}
+
+      <p className="clinic-availability-note">
+        This workspace displays existing clinic records. Lab billing and consultation workflows are not available here yet.
+      </p>
     </div>
   );
 };

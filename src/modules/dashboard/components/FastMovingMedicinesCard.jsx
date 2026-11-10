@@ -1,6 +1,7 @@
+import EmptyState from "../../../shared/components/EmptyState";
 import { Pill } from "lucide-react";
 
-const FastMovingMedicinesCard = ({ rows, onViewAll }) => (
+const FastMovingMedicinesCard = ({ rows, onViewAll, error }) => (
   <section className="card dashboard-operations-card">
     <div className="dashboard-card-toolbar">
       <div className="dashboard-card-heading">
@@ -16,6 +17,10 @@ const FastMovingMedicinesCard = ({ rows, onViewAll }) => (
       </button>
     </div>
 
+    {error || !rows.length ? <EmptyState
+      title={error ? "Unable to load activity" : "No activity yet"}
+      description={error || "Records will appear here when available."}
+    /> : (
     <div className="dashboard-table-wrap">
       <table className="dashboard-mini-table">
         <thead>
@@ -36,6 +41,7 @@ const FastMovingMedicinesCard = ({ rows, onViewAll }) => (
         </tbody>
       </table>
     </div>
+    )}
   </section>
 );
 

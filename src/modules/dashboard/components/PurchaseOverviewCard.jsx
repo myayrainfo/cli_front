@@ -1,10 +1,11 @@
+import EmptyState from "../../../shared/components/EmptyState";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PackagePlus } from "lucide-react";
 
 const tooltipStyle = {
-  borderRadius: 18,
+  borderRadius: 8,
   border: "1px solid #dbe7f0",
-  boxShadow: "0 18px 32px rgba(16, 35, 63, 0.10)",
+  boxShadow: "0 4px 12px rgba(16, 35, 63, 0.06)",
 };
 
 const PurchaseOverviewCard = ({ data, totalPurchases, averagePurchases }) => (
@@ -16,24 +17,24 @@ const PurchaseOverviewCard = ({ data, totalPurchases, averagePurchases }) => (
         </span>
         <div>
           <h3>Purchase Overview</h3>
-          <p>Weekly purchasing trend</p>
+          <p>Recent purchase entries</p>
         </div>
       </div>
-      <button type="button" className="dashboard-filter-pill">
-        Weekly
-      </button>
+      <span className="dashboard-filter-pill">
+        Latest 7 purchases
+      </span>
     </div>
 
     <div className="dashboard-mini-analytics-chart">
-      <ResponsiveContainer width="100%" height={220}>
+      {data.length ? <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="#e5edf5" strokeDasharray="3 3" />
           <XAxis axisLine={false} dataKey="label" tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
           <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="total" fill="#3b82f6" radius={[12, 12, 0, 0]} barSize={24} />
+          <Bar isAnimationActive={false} dataKey="total" fill="#647b96" radius={[4, 4, 0, 0]} barSize={24} />
         </BarChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer> : <EmptyState title="No activity yet" description="Recorded transactions will appear here." />}
     </div>
 
     <div className="dashboard-mini-card-stats">
@@ -42,7 +43,7 @@ const PurchaseOverviewCard = ({ data, totalPurchases, averagePurchases }) => (
         <strong>{totalPurchases}</strong>
       </div>
       <div>
-        <span>Average / Day</span>
+        <span>Average / Entry</span>
         <strong>{averagePurchases}</strong>
       </div>
     </div>

@@ -1,24 +1,16 @@
-import { motion } from "framer-motion";
 import { Plus, ShoppingCart } from "lucide-react";
 
 const DashboardHero = ({ userName, onNewBill, onAddMedicine, onPurchaseEntry }) => (
-  <motion.section
+  <section
     className="dashboard-hero"
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.24 }}
   >
     <div className="dashboard-hero-copy">
       <span className="dashboard-section-label">Operations overview</span>
-      <h1>Good evening, {userName} 👋</h1>
+      <h1>Welcome back, {userName}</h1>
       <p>Here is your pharmacy and clinic operations overview for today.</p>
     </div>
 
     <div className="dashboard-hero-actions">
-      <div className="dashboard-date-selector">
-        <span>Date Range</span>
-        <strong>19 May 2026 - 23 May 2026</strong>
-      </div>
       <div className="dashboard-quick-actions">
         <button type="button" className="primary-button" onClick={onNewBill}>
           <Plus size={16} />
@@ -34,7 +26,7 @@ const DashboardHero = ({ userName, onNewBill, onAddMedicine, onPurchaseEntry }) 
         </button>
       </div>
     </div>
-  </motion.section>
+  </section>
 );
 
 export default DashboardHero;

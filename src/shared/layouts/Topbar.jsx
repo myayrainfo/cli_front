@@ -1,11 +1,11 @@
-import { Building2, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../core/auth/AuthContext";
 import { navItems } from "../../core/config/navigation";
 import GlobalClinicSearch from "../components/GlobalClinicSearch";
 import NotificationsMenu from "../components/NotificationsMenu";
 
-const Topbar = ({ onMenuToggle }) => {
+const Topbar = ({ onMenuToggle, sidebarOpen }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const currentItem = navItems.find((item) =>
@@ -21,13 +21,15 @@ const Topbar = ({ onMenuToggle }) => {
           type="button"
           className="icon-button mobile-only"
           onClick={onMenuToggle}
-          aria-label="Open sidebar"
+          aria-label="Toggle sidebar"
+          aria-expanded={sidebarOpen}
+          aria-controls="workspace-navigation"
         >
           <Menu size={18} />
         </button>
         <div className="topbar-title-copy">
-          <p className="topbar-breadcrumb">WORKSPACE</p>
-          <h2>{user?.tenantName || "Arya Clinic Pharmacy"}</h2>
+          <p className="topbar-breadcrumb">{user?.tenantName || "AYRA Clinic ERP"}</p>
+          <h2>{currentItem?.children?.find((item) => item.path === location.pathname)?.label || currentItem?.label || "Workspace"}</h2>
         </div>
       </div>
 
@@ -36,14 +38,11 @@ const Topbar = ({ onMenuToggle }) => {
       </div>
 
       <div className="topbar-actions">
-        <NotificationsMenu badgeCountOverride={26} />
-        <button type="button" className="icon-button" aria-label="Open clinic quick actions">
-          <Building2 size={18} />
-        </button>
+        <NotificationsMenu />
         <div className="user-chip">
           <div>
-            <strong>{user?.name || "Demo Owner"}</strong>
-            <span>{user?.role || "TENANT_OWNER"}</span>
+            <strong>{user?.name || "Account"}</strong>
+            <span>{user?.role?.replaceAll("_", " ") || ""}</span>
           </div>
         </div>
         <button type="button" className="ghost-button" onClick={logout}>

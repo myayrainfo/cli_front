@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../core/api/axios";
+import Badge from "../../shared/components/Badge";
+import EmptyState from "../../shared/components/EmptyState";
+import { formatDate } from "../../shared/utils/format";
 import DataTable from "../../shared/components/DataTable";
 import Loader from "../../shared/components/Loader";
 import PageHeader from "../../shared/components/PageHeader";
@@ -30,65 +33,63 @@ const SettingsPage = () => {
   const store = settings?.storeProfile;
 
   return (
-    <div className="page-stack">
+    <div className="page-stack settings-page">
       <PageHeader
         title="Settings"
-        subtitle="Control store profile, GST, invoice template, category setup, rack setup, backups, branches, audit logs, and payment UI placeholders."
+        subtitle="View store configuration, account details and recent audit activity."
       />
 
-      {error ? <div className="error-banner">{error}</div> : null}
+      {error ? <div className="error-banner" role="alert">{error}</div> : null}
+      {!error && !settings ? <EmptyState title="Settings unavailable" description="No configuration data was returned." /> : null}
 
-      <div className="split-grid">
-        <SectionCard title="Store profile and operational settings">
-          <div className="settings-grid">
-            <div><strong>Store profile:</strong> {store?.storeName}</div>
-            <div><strong>GST settings:</strong> {store?.settings?.gstPercentage}%</div>
-            <div><strong>Invoice template:</strong> {store?.settings?.invoiceTemplate}</div>
-            <div><strong>Discount settings:</strong> {store?.settings?.defaultDiscount}% default</div>
-            <div><strong>Medicine category setup:</strong> {store?.settings?.medicineCategories?.join(", ")}</div>
-            <div><strong>Rack/shelf setup:</strong> {store?.settings?.racks?.join(", ")}</div>
-            <div><strong>Backup settings:</strong> {store?.settings?.backupEnabled ? "Enabled" : "Disabled"}</div>
-            <div><strong>Branch settings:</strong> {store?.settings?.branches?.map((branch) => branch.name).join(", ")}</div>
+      {!error && settings ? (
+        <>
+          <p className="module-note">Read-only view. Configuration changes cannot be saved from this page.</p>
+
+          <div className="split-grid">
+            <SectionCard title="Store configuration">
+              <dl className="settings-grid">
+                <div><dt>Store name</dt><dd>{store?.storeName || "Not configured"}</dd></div>
+                <div><dt>GST rate</dt><dd>{store?.settings?.gstPercentage == null ? "Not configured" : `${store.settings.gstPercentage}%`}</dd></div>
+                <div><dt>Invoice template</dt><dd>{store?.settings?.invoiceTemplate || "Not configured"}</dd></div>
+                <div><dt>Default discount</dt><dd>{store?.settings?.defaultDiscount == null ? "Not configured" : `${store.settings.defaultDiscount}%`}</dd></div>
+                <div><dt>Medicine categories</dt><dd>{store?.settings?.medicineCategories?.join(", ") || "Not configured"}</dd></div>
+                <div><dt>Racks / shelves</dt><dd>{store?.settings?.racks?.join(", ") || "Not configured"}</dd></div>
+                <div><dt>Backup setting</dt><dd>{store?.settings?.backupEnabled == null ? "Not configured" : store.settings.backupEnabled ? "Enabled" : "Disabled"}</dd></div>
+                <div><dt>Branches</dt><dd>{store?.settings?.branches?.map((branch) => branch.name).join(", ") || "Not configured"}</dd></div>
+              </dl>
+            </SectionCard>
+
+            <SectionCard title="Account information">
+              <dl className="settings-grid">
+                <div><dt>Current plan</dt><dd>{settings?.payment?.currentPlan || "Unavailable"}</dd></div>
+                <div><dt>Payment status</dt><dd><Badge>{settings?.payment?.paymentStatus || "Unavailable"}</Badge></dd></div>
+              </dl>
+              <p className="module-note">Plan upgrades, payment processing and account invoice downloads are not available here.</p>
+            </SectionCard>
           </div>
-        </SectionCard>
 
-        <SectionCard title="Payment system UI">
-          <div className="settings-grid">
-            <div><strong>Current plan:</strong> {settings?.payment?.currentPlan}</div>
-            <div><strong>Payment status:</strong> {settings?.payment?.paymentStatus}</div>
-            <div><strong>Upgrade plan button:</strong> Placeholder</div>
-            <div><strong>Invoice download:</strong> Placeholder</div>
-            <div><strong>Payment gateway:</strong> UI only for now</div>
+          <div className="module-records">
+            <SectionCard title="Payment history">
+              <EmptyState title="Payment history unavailable" description="The service currently supplies sample payment history. Actual payment records are not connected to this view." />
+            </SectionCard>
+
+            <SectionCard title="Audit logs">
+              <DataTable
+                columns={[
+                  { key: "module", label: "Module" },
+                  { key: "action", label: "Action" },
+                  { key: "message", label: "Message" },
+                  { key: "createdAt", label: "Date", render: (row) => formatDate(row.createdAt) },
+                ]}
+                rows={settings?.auditLogs || []}
+                emptyText="No audit activity"
+                emptyDescription="No audit logs were returned for this account."
+              />
+            </SectionCard>
           </div>
-        </SectionCard>
-      </div>
-
-      <div className="split-grid">
-        <SectionCard title="Payment history table">
-          <DataTable
-            columns={[
-              { key: "id", label: "Ref" },
-              { key: "date", label: "Date" },
-              { key: "amount", label: "Amount" },
-              { key: "status", label: "Status" },
-              { key: "invoice", label: "Invoice download placeholder" },
-            ]}
-            rows={settings?.payment?.paymentHistory || []}
-          />
-        </SectionCard>
-
-        <SectionCard title="Audit logs">
-          <DataTable
-            columns={[
-              { key: "module", label: "Module" },
-              { key: "action", label: "Action" },
-              { key: "message", label: "Message" },
-              { key: "createdAt", label: "Created at" },
-            ]}
-            rows={settings?.auditLogs || []}
-          />
-        </SectionCard>
-      </div>
+        </>
+      ) : null}
     </div>
   );
 };

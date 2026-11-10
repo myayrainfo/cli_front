@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Edit3, Eye, MoreHorizontal, Trash2, CopyPlus } from "lucide-react";
+import EmptyState from "../../../shared/components/EmptyState";
 import Badge from "../../../shared/components/Badge";
 import { formatCurrency } from "../../../shared/utils/format";
 import { useInventoryModule } from "../InventoryModuleContext";
@@ -15,9 +16,9 @@ const statusTone = {
 
 const tableTabs = [
   { key: "all", label: "All Medicines" },
-  { key: "low-stock", label: "Low Stock (32)" },
-  { key: "expiring-soon", label: "Expiring Soon (28)" },
-  { key: "expired", label: "Expired (12)" },
+  { key: "low-stock", label: "Low Stock" },
+  { key: "expiring-soon", label: "Expiring Soon" },
+  { key: "expired", label: "Expired" },
 ];
 
 const InventoryTable = ({
@@ -130,13 +131,14 @@ const InventoryTable = ({
         onMoreFilters={() => addToast("Additional filters can be added per workflow.", "info")}
       />
 
-      <div className="inventory-table-wrap">
+      {!pageRows.length ? <EmptyState title="No matching medicines" description="Try another search or adjust the filters." /> : <div className="inventory-table-wrap">
         <table className="inventory-table">
           <thead>
             <tr>
               <th>
                 <input
                   type="checkbox"
+                  aria-label="Select visible medicines"
                   checked={allVisibleSelected}
                   onChange={(event) => selectVisibleMedicines(visibleIds, event.target.checked)}
                 />
@@ -157,6 +159,7 @@ const InventoryTable = ({
                 <td>
                   <input
                     type="checkbox"
+                    aria-label={`Select ${medicine.name}`}
                     checked={selectedIds.includes(medicine.id)}
                     onChange={() => toggleMedicineSelection(medicine.id)}
                   />
@@ -166,7 +169,7 @@ const InventoryTable = ({
                     <img src={medicine.imageUrl} alt={medicine.name} />
                     <div>
                       <strong>{medicine.name}</strong>
-                      <span>{medicine.code}</span>
+                      <span>{medicine.code} / Batch {medicine.batchNumber}</span>
                     </div>
                   </div>
                 </td>
@@ -180,13 +183,15 @@ const InventoryTable = ({
                 </td>
                 <td>
                   <div className="inventory-row-actions">
-                    <button type="button" className="icon-button subtle" onClick={() => openEditMedicine(medicine)}>
+                    <button type="button" className="icon-button subtle" aria-label={`Edit ${medicine.name}`} onClick={() => openEditMedicine(medicine)}>
                       <Edit3 size={16} />
                     </button>
                     <div className="inventory-action-menu-wrap">
                       <button
                         type="button"
                         className="icon-button subtle"
+                        aria-label={`Actions for ${medicine.name}`}
+                        aria-expanded={menuOpenId === medicine.id}
                         onClick={() => setMenuOpenId((current) => (current === medicine.id ? "" : medicine.id))}
                       >
                         <MoreHorizontal size={16} />
@@ -218,17 +223,17 @@ const InventoryTable = ({
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       <div className="inventory-pagination">
         <span>
-          Showing {showingStart} to {showingEnd} of {showTabs && activeTableTab === "all" ? "1,248" : medicines.length.toLocaleString("en-IN")} items
+          Showing {showingStart} to {showingEnd} of {medicines.length.toLocaleString("en-IN")} items
         </span>
         <div className="inventory-pagination-buttons">
           <button type="button" className="ghost-button" disabled={safePage === 1} onClick={() => onPageChange(safePage - 1)}>
             Previous
           </button>
-          {[1, 2, 3].map((item) => (
+          {Array.from({ length: Math.min(3, pageCount) }, (_, index) => Math.max(1, Math.min(safePage - 1, pageCount - 2)) + index).map((item) => (
             <button
               key={item}
               type="button"
@@ -238,10 +243,6 @@ const InventoryTable = ({
               {item}
             </button>
           ))}
-          <span className="inventory-page-ellipsis">...</span>
-          <button type="button" className="inventory-page-pill" onClick={() => onPageChange(pageCount)}>
-            {showTabs && activeTableTab === "all" ? "208" : pageCount}
-          </button>
           <button type="button" className="ghost-button" disabled={safePage === pageCount} onClick={() => onPageChange(safePage + 1)}>
             Next
           </button>

@@ -1,14 +1,13 @@
 import { useMemo } from "react";
 import {
   AlertTriangle,
-  CircleDollarSign,
   ShoppingCart,
   TrendingUp,
-  TriangleAlert,
   WalletCards,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../core/auth/AuthContext";
+import EmptyState from "../../shared/components/EmptyState";
 import Loader from "../../shared/components/Loader";
 import { useLayoutData } from "../../shared/layouts/LayoutDataContext";
 import { formatCurrency } from "../../shared/utils/format";
@@ -23,61 +22,6 @@ import RecentAlertsCard from "./components/RecentAlertsCard";
 import RevenueSalesOverview from "./components/RevenueSalesOverview";
 import StockHealthCard from "./components/StockHealthCard";
 
-const fallbackRevenueChart = [
-  { label: "19 May", sales: 142, orders: 3, purchases: 980 },
-  { label: "20 May", sales: 286, orders: 7, purchases: 1840 },
-  { label: "21 May", sales: 124, orders: 2, purchases: 1325 },
-  { label: "22 May", sales: 110, orders: 2, purchases: 1245 },
-  { label: "23 May", sales: 200.05, orders: 4, purchases: 1500 },
-];
-
-const fallbackFastMovingRows = [
-  { medicine: "Paracetamol 650mg", soldQty: 120, revenue: formatCurrency(1200) },
-  { medicine: "Azithromycin 500mg", soldQty: 85, revenue: formatCurrency(1020) },
-  { medicine: "Cetirizine 10mg", soldQty: 78, revenue: formatCurrency(780) },
-  { medicine: "Pantoprazole 40mg", soldQty: 65, revenue: formatCurrency(650) },
-];
-
-const fallbackAlerts = [
-  {
-    title: "Expired medicine alert",
-    description: "1 expired medicine found. Review and remove.",
-    time: "7d ago",
-    tone: "red",
-  },
-  {
-    title: "Low stock alert",
-    description: "5 medicines are running low on stock.",
-    time: "2d ago",
-    tone: "amber",
-  },
-  {
-    title: "Supplier payment due",
-    description: "₹5,000 pending payment to suppliers.",
-    time: "1d ago",
-    tone: "blue",
-  },
-];
-
-const formatCompactDate = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value || "-");
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-};
-
-const toRelativeTime = (value, fallback = "1d ago") => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-
-  const diffHours = Math.max(1, Math.round((Date.now() - date.getTime()) / (1000 * 60 * 60)));
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.round(diffHours / 24)}d ago`;
-};
-
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -86,123 +30,71 @@ const DashboardPage = () => {
   const dashboard = shellData.dashboard || {};
   const kpis = dashboard.kpis || {};
 
-  const revenueChartData = useMemo(() => {
-    const sales = Array.isArray(dashboard.salesSummaryChart) ? dashboard.salesSummaryChart : [];
-    const purchases = Array.isArray(dashboard.purchaseSummaryChart) ? dashboard.purchaseSummaryChart : [];
-
-    if (!sales.length && !purchases.length) {
-      return fallbackRevenueChart;
-    }
-
-    return sales.map((item, index) => ({
-      label: formatCompactDate(item.label),
-      sales: Number(item.total) || 0,
-      orders: Math.max(1, Math.round((Number(item.total) || 0) / 120)),
-      purchases: Number(purchases[index]?.total) || 0,
-    }));
-  }, [dashboard.purchaseSummaryChart, dashboard.salesSummaryChart]);
-
-  const purchaseChartData = useMemo(
-    () =>
-      revenueChartData.map((item) => ({
-        label: item.label,
-        total: item.purchases,
-      })),
-    [revenueChartData]
-  );
+  const revenueChartData = (dashboard.salesSummaryChart || []).map((item) => ({
+    label: item.label,
+    sales: item.total,
+  }));
+  const purchaseChartData = dashboard.purchaseSummaryChart || [];
+  const currency = (value) => value == null ? "Unavailable" : formatCurrency(value);
 
   const totalSales = revenueChartData.reduce((sum, item) => sum + item.sales, 0);
   const averageSales = revenueChartData.length ? totalSales / revenueChartData.length : 0;
   const bestDay = revenueChartData.reduce(
     (best, item) => (item.sales > best.sales ? item : best),
-    revenueChartData[0] || { label: "20/5/2026", sales: 0 }
+    revenueChartData[0] || { label: "No records", sales: 0 }
   );
   const totalPurchases = purchaseChartData.reduce((sum, item) => sum + item.total, 0);
   const averagePurchases = purchaseChartData.length ? totalPurchases / purchaseChartData.length : 0;
 
-  const availableStock = (shellData.medicines || []).reduce(
-    (sum, medicine) => sum + (Number(medicine.totalStock) || Number(medicine.quantity) || 0),
-    0
-  );
-
   const stockHealthItems = [
-    {
-      label: "Available Stock",
-      value: availableStock || 127,
-      progress: 100,
-      tone: "green",
-    },
-    {
-      label: "Low Stock",
-      value: kpis.lowStockMedicines ?? 5,
-      progress: availableStock ? Math.min(100, ((kpis.lowStockMedicines || 0) / availableStock) * 1000) : 22,
-      tone: "amber",
-    },
-    {
-      label: "Near Expiry",
-      value: kpis.nearExpiryMedicines ?? 5,
-      progress: availableStock ? Math.min(100, ((kpis.nearExpiryMedicines || 0) / availableStock) * 1000) : 22,
-      tone: "blue",
-    },
-    {
-      label: "Expired",
-      value: kpis.expiredMedicines ?? 1,
-      progress: availableStock ? Math.min(100, ((kpis.expiredMedicines || 0) / availableStock) * 1000) : 12,
-      tone: "red",
-    },
+    { label: "Low-stock medicines", value: kpis.lowStockMedicines ?? "Unavailable", tone: "amber" },
+    { label: "Near-expiry batches", value: kpis.nearExpiryMedicines ?? "Unavailable", tone: "amber" },
+    { label: "Expired batches", value: kpis.expiredMedicines ?? "Unavailable", tone: "red" },
   ];
-
-  const stockRisk = (kpis.lowStockMedicines || 0) + (kpis.nearExpiryMedicines || 0) + (kpis.expiredMedicines || 0);
-  const stockRiskValue = stockRisk || 11;
-  const profitValue = kpis.profitSummary ?? -4845.75;
+  const stockRisk = [kpis.lowStockMedicines, kpis.nearExpiryMedicines, kpis.expiredMedicines];
+  const stockRiskValue = stockRisk.every((value) => typeof value === "number")
+    ? stockRisk.reduce((sum, value) => sum + value, 0) : "Unavailable";
+  const profitValue = kpis.profitSummary;
 
   const kpiCards = [
     {
       title: "Sales Today",
-      value: formatCurrency(kpis.totalSalesToday ?? 862.05),
-      trend: "↑ 12.5% from yesterday",
+      value: currency(kpis.totalSalesToday),
+      trend: "Today",
       tone: "green",
       icon: TrendingUp,
-      sparkline: [32, 44, 28, 52, 46, 64],
-      accentColor: "#10b981",
     },
     {
       title: "Purchases Today",
-      value: formatCurrency(kpis.totalPurchaseToday ?? 0),
-      trend: "↓ 100% from yesterday",
+      value: currency(kpis.totalPurchaseToday),
+      trend: "Today",
       tone: "blue",
       icon: ShoppingCart,
-      sparkline: [64, 40, 35, 28, 16, 8],
-      accentColor: "#3b82f6",
     },
     {
-      title: "Net Profit",
-      value: formatCurrency(profitValue),
-      trend: "↓ 100% from yesterday",
-      tone: "purple",
+      title: "Net Position",
+      value: currency(profitValue),
+      trend: "All-time sales less purchases",
+      tone: "blue",
       icon: WalletCards,
-      sparkline: [44, 38, 28, 22, 16, 10],
-      accentColor: "#8b5cf6",
     },
     {
       title: "Stock Risk",
       value: `${stockRiskValue}`,
-      trend: "Needs your attention",
+      trend: "Medicine and batch flags",
       tone: "orange",
       icon: AlertTriangle,
-      ringValue: Math.min(100, stockRiskValue * 9),
-      ringColor: "#f59e0b",
     },
   ];
 
   const insightItems = [
-    { label: "Low Stock", value: kpis.lowStockMedicines ?? 5, tone: "amber", icon: "amber" },
-    { label: "Near Expiry", value: kpis.nearExpiryMedicines ?? 5, tone: "blue", icon: "blue" },
-    { label: "Expired", value: kpis.expiredMedicines ?? 1, tone: "red", icon: "red" },
-    { label: "Supplier Payments", value: formatCurrency(kpis.pendingSupplierPayments ?? 5000), tone: "green", icon: "green" },
-    { label: "Customer Dues", value: formatCurrency(kpis.customerDues ?? 750), tone: "purple", icon: "purple" },
-    { label: "Fast Moving", value: kpis.fastMovingMedicines?.length ?? 5, tone: "teal", icon: "teal" },
-    { label: "Slow Moving", value: kpis.slowMovingMedicines?.length ?? 5, tone: "orange", icon: "orange" },
+    { label: "Low Stock", value: kpis.lowStockMedicines ?? "Unavailable", tone: "amber", icon: "amber" },
+    { label: "Near Expiry", value: kpis.nearExpiryMedicines ?? "Unavailable", tone: "blue", icon: "blue" },
+    { label: "Expired", value: kpis.expiredMedicines ?? "Unavailable", tone: "red", icon: "red" },
+    { label: "Supplier Payments", value: currency(kpis.pendingSupplierPayments), tone: "green", icon: "green" },
+    { label: "Customer Dues", value: currency(kpis.customerDues), tone: "purple", icon: "purple" },
+    { label: "Fast Moving", value: kpis.fastMovingMedicines?.length ?? "Unavailable", tone: "teal", icon: "teal" },
+    { label: "Slow Moving", value: kpis.slowMovingMedicines?.length ?? "Unavailable", tone: "orange", icon: "orange" },
   ];
 
   const fastMovingRows = useMemo(() => {
@@ -227,9 +119,7 @@ const DashboardPage = () => {
         revenue: formatCurrency(row.revenue),
       }));
 
-    return rows.length
-      ? [...rows, ...fallbackFastMovingRows.filter((fallback) => !rows.some((row) => row.medicine === fallback.medicine))].slice(0, 4)
-      : fallbackFastMovingRows;
+    return rows;
   }, [shellData.sales]);
 
   const recentAlerts = useMemo(() => {
@@ -239,8 +129,8 @@ const DashboardPage = () => {
     if (expiredBatch) {
       rows.push({
         title: "Expired medicine alert",
-        description: `1 expired medicine found. Review and remove.`,
-        time: toRelativeTime(expiredBatch.expiryDate, "7d ago"),
+        description: `${shellData.alerts.expired.length} expired batches require review.`,
+        time: "",
         tone: "red",
       });
     }
@@ -250,7 +140,7 @@ const DashboardPage = () => {
       rows.push({
         title: "Low stock alert",
         description: `${lowStockItems.length} medicines are running low on stock.`,
-        time: "2d ago",
+        time: "",
         tone: "amber",
       });
     }
@@ -263,40 +153,36 @@ const DashboardPage = () => {
       rows.push({
         title: "Supplier payment due",
         description: `${formatCurrency(supplierDue)} pending payment to suppliers.`,
-        time: "1d ago",
+        time: "",
         tone: "blue",
       });
     }
 
-    if (!rows.length) {
-      return fallbackAlerts;
-    }
-
-    return [...rows, ...fallbackAlerts.filter((fallback) => !rows.some((row) => row.title === fallback.title))].slice(0, 3);
+    return rows;
   }, [shellData.alerts, shellData.suppliers]);
 
   const pendingActions = [
     {
       label: "Remove expired medicine",
-      count: kpis.expiredMedicines ?? 1,
+      count: kpis.expiredMedicines ?? "Unavailable",
       tone: "red",
       onClick: () => navigate("/alerts"),
     },
     {
       label: "Clear supplier payment",
-      count: (shellData.suppliers || []).filter((supplier) => Number(supplier.paymentDue) > 0).length || 1,
+      count: errors.suppliers ? "Unavailable" : (shellData.suppliers || []).filter((supplier) => Number(supplier.paymentDue) > 0).length,
       tone: "blue",
       onClick: () => navigate("/purchases"),
     },
     {
       label: "Review customer dues",
-      count: (shellData.customers || []).filter((customer) => Number(customer.dueAmount) > 0).length || 1,
+      count: errors.customers ? "Unavailable" : (shellData.customers || []).filter((customer) => Number(customer.dueAmount) > 0).length,
       tone: "purple",
       onClick: () => navigate("/people"),
     },
     {
       label: "Restock low-stock medicines",
-      count: kpis.lowStockMedicines ?? 5,
+      count: kpis.lowStockMedicines ?? "Unavailable",
       tone: "amber",
       onClick: () => navigate("/inventory/low-stock"),
     },
@@ -306,13 +192,15 @@ const DashboardPage = () => {
     return <Loader label="Loading dashboard..." />;
   }
 
-  return (
-    <main className="dashboard-main">
-      <div className="dashboard-content">
-        {errors.dashboard ? <div className="error-banner">{errors.dashboard}</div> : null}
+  if (!shellData.dashboard || errors.dashboard) {
+    return <EmptyState title="Dashboard unavailable" description={errors.dashboard || "No dashboard data was returned."} />;
+  }
 
+  return (
+    <div className="dashboard-main">
+      <div className="dashboard-content">
         <DashboardHero
-          userName={user?.name || "Demo Owner"}
+          userName={user?.name || "there"}
           onNewBill={() => navigate("/billing")}
           onAddMedicine={() => navigate("/inventory/medicines")}
           onPurchaseEntry={() => navigate("/purchases")}
@@ -329,36 +217,36 @@ const DashboardPage = () => {
         <section className="dashboard-analytics-grid-premium">
           <RevenueSalesOverview
             data={revenueChartData}
-            totalSales={formatCurrency(totalSales || 862.05)}
-            averageSales={formatCurrency(averageSales || 172.41)}
-            bestDay={bestDay?.label || "20/5/2026"}
+            totalSales={revenueChartData.length ? formatCurrency(totalSales) : "No records"}
+            averageSales={revenueChartData.length ? formatCurrency(averageSales) : "No records"}
+            bestDay={bestDay.label}
           />
 
           <div className="dashboard-analytics-side-premium">
             <PurchaseOverviewCard
               data={purchaseChartData}
-              totalPurchases={formatCurrency(totalPurchases || 6890)}
-              averagePurchases={formatCurrency(averagePurchases || 1378)}
+              totalPurchases={purchaseChartData.length ? formatCurrency(totalPurchases) : "No records"}
+              averagePurchases={purchaseChartData.length ? formatCurrency(averagePurchases) : "No records"}
             />
-
-            <div className="dashboard-health-grid">
-              <ProfitHealthCard
-                profitValue={formatCurrency(profitValue)}
-                supplierDues={formatCurrency(kpis.pendingSupplierPayments ?? 5000)}
-                customerDues={formatCurrency(kpis.customerDues ?? 750)}
-              />
-              <StockHealthCard items={stockHealthItems} />
-            </div>
           </div>
         </section>
 
+        <section className="dashboard-health-grid">
+          <ProfitHealthCard
+            profitValue={currency(profitValue)}
+            supplierDues={currency(kpis.pendingSupplierPayments)}
+            customerDues={currency(kpis.customerDues)}
+          />
+          <StockHealthCard items={stockHealthItems} />
+        </section>
+
         <section className="dashboard-operations-grid-premium">
-          <RecentAlertsCard alerts={recentAlerts} onViewAll={() => navigate("/alerts")} />
-          <FastMovingMedicinesCard rows={fastMovingRows} onViewAll={() => navigate("/reports")} />
+          <RecentAlertsCard error={errors.alerts || errors.suppliers} alerts={recentAlerts} onViewAll={() => navigate("/alerts")} />
+          <FastMovingMedicinesCard error={errors.sales} rows={fastMovingRows} onViewAll={() => navigate("/reports")} />
           <PendingActionsCard actions={pendingActions} />
         </section>
       </div>
-    </main>
+    </div>
   );
 };
 

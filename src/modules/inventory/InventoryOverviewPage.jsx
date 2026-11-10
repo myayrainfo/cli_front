@@ -37,11 +37,12 @@ const InventoryOverviewPage = () => {
         <div>
           <span className="eyebrow">Inventory Dashboard</span>
           <h1>Inventory Overview</h1>
-          <p>Real-time summary of your pharmacy inventory</p>
+          <p>Overview of the local inventory workspace</p>
         </div>
         <div className="inventory-hero-search">
           <Search size={18} />
           <input
+            aria-label="Search inventory"
             value={globalSearch}
             onChange={(event) => setGlobalSearch(event.target.value)}
             placeholder="Search medicines, batches, barcode..."

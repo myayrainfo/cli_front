@@ -1,3 +1,4 @@
+import { formatDate } from "../../shared/utils/format";
 import { useMemo, useState } from "react";
 import Badge from "../../shared/components/Badge";
 import PageHeader from "../../shared/components/PageHeader";
@@ -51,6 +52,7 @@ const InventoryExpiringSoonPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!filtered.length ? <tr><td colSpan={7} className="muted">No matching records.</td></tr> : null}
               {filtered.map((item) => {
                 const daysLeft = getDaysUntil(item.expiryDate);
                 const status = daysLeft < 0 ? "Expired" : daysLeft <= 30 ? "Urgent" : "Monitor";
@@ -59,7 +61,7 @@ const InventoryExpiringSoonPage = () => {
                     <td>{item.name}</td>
                     <td>{item.batchNumber}</td>
                     <td>{item.quantity}</td>
-                    <td>{item.expiryDate}</td>
+                    <td>{formatDate(item.expiryDate)}</td>
                     <td>{daysLeft < 0 ? "Expired" : `${daysLeft} days`}</td>
                     <td>
                       <Badge tone={daysLeft < 0 ? "danger" : daysLeft <= 30 ? "warning" : "info"}>{status}</Badge>

@@ -19,7 +19,7 @@ const InventoryPage = () => (
       <section className="card inventory-subnav-card">
         <div>
           <span className="eyebrow">Inventory Workspace</span>
-          <h2>Pharmacy inventory control room</h2>
+          <h2>Inventory</h2>
         </div>
         <nav className="inventory-subnav">
           {inventoryRoutes.map((item) => (
@@ -30,6 +30,7 @@ const InventoryPage = () => (
         </nav>
       </section>
 
+      <p className="inventory-local-note">Demo inventory: records and summary figures use sample data. Changes are kept only for this session and are not saved to the server.</p>
       <Outlet />
       <MedicineModal />
       <InventoryDetailsDrawer />

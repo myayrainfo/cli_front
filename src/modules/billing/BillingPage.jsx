@@ -4,7 +4,6 @@ import {
   Download,
   Plus,
   Printer,
-  QrCode,
   ReceiptText,
   RotateCcw,
   Save,
@@ -45,6 +44,11 @@ const createSplitPayments = () => ({
   UPI: "",
   Card: "",
 });
+
+// Dynamic print values are text, never trusted HTML.
+const escapePrintText = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+}[character]));
 
 const roundCurrency = (value) => Number((Number(value) || 0).toFixed(2));
 
@@ -493,14 +497,14 @@ const BillingPage = () => {
       .map(
         (item) => `
           <tr>
-            <td>${item.medicineName}</td>
-            <td>${item.batchNo}</td>
-            <td>${new Date(item.expiry).toLocaleDateString("en-IN")}</td>
-            <td>${item.quantity}</td>
-            <td>${item.mrp.toFixed(2)}</td>
-            <td>${item.discount.toFixed(2)}</td>
-            <td>${item.gstPercent}%</td>
-            <td>${item.totalAmount.toFixed(2)}</td>
+            <td>${escapePrintText(item.medicineName)}</td>
+            <td>${escapePrintText(item.batchNo)}</td>
+            <td>${escapePrintText(new Date(item.expiry).toLocaleDateString("en-IN"))}</td>
+            <td>${escapePrintText(item.quantity)}</td>
+            <td>${escapePrintText(item.mrp.toFixed(2))}</td>
+            <td>${escapePrintText(item.discount.toFixed(2))}</td>
+            <td>${escapePrintText(item.gstPercent)}%</td>
+            <td>${escapePrintText(item.totalAmount.toFixed(2))}</td>
           </tr>
         `
       )
@@ -509,7 +513,7 @@ const BillingPage = () => {
     popup.document.write(`
       <html>
         <head>
-          <title>${activeInvoice.invoiceNo}</title>
+          <title>${escapePrintText(activeInvoice.invoiceNo)}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 24px; color: #1f2937; }
             h1, h2, p { margin: 0 0 6px; }
@@ -522,11 +526,11 @@ const BillingPage = () => {
         </head>
         <body>
           <h1>AYRA Clinic ERP</h1>
-          <p>Invoice No: ${activeInvoice.invoiceNo}</p>
-          <p>Date: ${new Date(activeInvoice.createdAt).toLocaleString("en-IN")}</p>
-          <p>Customer: ${activeInvoice.customerName || "Walk-in Customer"}</p>
-          <p>Mobile: ${activeInvoice.customerMobile || "-"}</p>
-          <p>Doctor: ${activeInvoice.doctorName || "-"}</p>
+          <p>Invoice No: ${escapePrintText(activeInvoice.invoiceNo)}</p>
+          <p>Date: ${escapePrintText(new Date(activeInvoice.createdAt).toLocaleString("en-IN"))}</p>
+          <p>Customer: ${escapePrintText(activeInvoice.customerName || "Walk-in Customer")}</p>
+          <p>Mobile: ${escapePrintText(activeInvoice.customerMobile || "-")}</p>
+          <p>Doctor: ${escapePrintText(activeInvoice.doctorName || "-")}</p>
           <table>
             <thead>
               <tr>
@@ -543,12 +547,12 @@ const BillingPage = () => {
             <tbody>${itemRows}</tbody>
           </table>
           <div class="summary">
-            <div><span>Subtotal</span><strong>${activeInvoice.subtotal.toFixed(2)}</strong></div>
-            <div><span>Discount</span><strong>${activeInvoice.discountTotal.toFixed(2)}</strong></div>
-            <div><span>GST</span><strong>${activeInvoice.gstTotal.toFixed(2)}</strong></div>
-            <div><span>Grand Total</span><strong>${activeInvoice.grandTotal.toFixed(2)}</strong></div>
-            <div><span>Paid</span><strong>${activeInvoice.paidAmount.toFixed(2)}</strong></div>
-            <div><span>Due</span><strong>${activeInvoice.dueAmount.toFixed(2)}</strong></div>
+            <div><span>Subtotal</span><strong>${escapePrintText(activeInvoice.subtotal.toFixed(2))}</strong></div>
+            <div><span>Discount</span><strong>${escapePrintText(activeInvoice.discountTotal.toFixed(2))}</strong></div>
+            <div><span>GST</span><strong>${escapePrintText(activeInvoice.gstTotal.toFixed(2))}</strong></div>
+            <div><span>Grand Total</span><strong>${escapePrintText(activeInvoice.grandTotal.toFixed(2))}</strong></div>
+            <div><span>Paid</span><strong>${escapePrintText(activeInvoice.paidAmount.toFixed(2))}</strong></div>
+            <div><span>Due</span><strong>${escapePrintText(activeInvoice.dueAmount.toFixed(2))}</strong></div>
           </div>
         </body>
       </html>
@@ -612,7 +616,7 @@ const BillingPage = () => {
     <div className="page-stack billing-page">
       <PageHeader
         title="Sales & Billing"
-        subtitle="Create pharmacy bills with batch selection, expiry blocking, GST, payments, returns, and invoice workflows."
+        subtitle="Select medicines, review your cart and complete checkout."
         action={
           <div className="action-row billing-header-actions">
             <button type="button" className="ghost-button" onClick={resetWorkspace}>
@@ -623,10 +627,6 @@ const BillingPage = () => {
               <ScanLine size={16} />
               <span>Scan Barcode</span>
             </button>
-            <button type="button" className="ghost-button" onClick={() => setSuccessMessage("QR scanner workflow placeholder is ready for device integration.")}>
-              <QrCode size={16} />
-              <span>Scan QR</span>
-            </button>
             <button type="button" className="ghost-button" onClick={() => setReturnOpen((current) => !current)}>
               <RotateCcw size={16} />
               <span>Sales Return</span>
@@ -635,8 +635,8 @@ const BillingPage = () => {
         }
       />
 
-      {error ? <div className="error-banner">{error}</div> : null}
-      {successMessage ? <div className="billing-success-banner">{successMessage}</div> : null}
+      {error ? <div className="error-banner" role="alert">{error}</div> : null}
+      {successMessage ? <div className="billing-success-banner" role="status">{successMessage}</div> : null}
 
       <div className="billing-workspace-grid">
         <div className="billing-column">
@@ -688,7 +688,7 @@ const BillingPage = () => {
                     </button>
                   ))}
                 </div>
-              ) : null}
+              ) : customerQuery ? <div className="feature-item billing-field-full">No matching customers. Enter customer details below.</div> : null}
 
               <label className="billing-field">
                 <span>Customer Name</span>
@@ -762,86 +762,12 @@ const BillingPage = () => {
               </Badge>
             </div>
           </SectionCard>
-
-          <SectionCard title="Due Tracking" className="billing-card">
-            <div className="billing-dues-list">
-              {dues.slice(0, 4).map((due) => (
-                <button
-                  key={due._id}
-                  type="button"
-                  className={`billing-due-item ${duePayment.dueId === due._id ? "active" : ""}`}
-                  onClick={() =>
-                    setDuePayment((current) => ({
-                      ...current,
-                      dueId: due._id,
-                      amount: due.dueAmount,
-                    }))
-                  }
-                >
-                  <div>
-                    <strong>{due.invoiceNo}</strong>
-                    <span>{due.customerName || "Walk-in Customer"}</span>
-                  </div>
-                  <Badge tone={due.status === "Closed" ? "success" : "warning"}>
-                    {formatCurrency(due.dueAmount)}
-                  </Badge>
-                </button>
-              ))}
-              {!dues.length ? <div className="feature-item">No open dues right now.</div> : null}
-            </div>
-
-            <div className="billing-form-grid billing-due-form">
-              <label className="billing-field">
-                <span>Pay Amount</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={duePayment.amount}
-                  onChange={(event) => setDuePayment((current) => ({ ...current, amount: event.target.value }))}
-                />
-              </label>
-              <label className="billing-field">
-                <span>Payment Mode</span>
-                <select
-                  value={duePayment.paymentMode}
-                  onChange={(event) =>
-                    setDuePayment((current) => ({
-                      ...current,
-                      paymentMode: event.target.value,
-                    }))
-                  }
-                >
-                  <option>Cash</option>
-                  <option>UPI</option>
-                  <option>Card</option>
-                </select>
-              </label>
-              <label className="billing-field billing-field-full">
-                <span>Transaction Ref</span>
-                <input
-                  value={duePayment.transactionRef}
-                  onChange={(event) =>
-                    setDuePayment((current) => ({
-                      ...current,
-                      transactionRef: event.target.value,
-                    }))
-                  }
-                  placeholder="Optional UPI/card reference"
-                />
-              </label>
-            </div>
-            <button type="button" className="primary-button" onClick={handlePayDue} disabled={submitting}>
-              Record Due Payment
-            </button>
-          </SectionCard>
-        </div>
-
-        <div className="billing-column">
-          <SectionCard title="Medicine Billing Workspace" className="billing-card">
+          <SectionCard title="Select Medicines" className="billing-card">
             <div className="billing-search-bar">
               <Search size={16} />
               <input
                 id="billing-barcode-input"
+                aria-label="Search medicines or barcode"
                 value={medicineQuery}
                 onChange={(event) => setMedicineQuery(event.target.value)}
                 placeholder="Search medicine name, generic, company, or barcode"
@@ -869,6 +795,8 @@ const BillingPage = () => {
               ))}
             </div>
 
+            {!filteredMedicines.length ? <div className="feature-item" role="status">No medicines match your search.</div> : null}
+
             {selectedMedicine ? (
               <div className="billing-medicine-shell">
                 <div className="billing-medicine-meta">
@@ -884,6 +812,7 @@ const BillingPage = () => {
                   </div>
                 </div>
 
+                {!selectedMedicine.batches?.length ? <div className="feature-item">No batches available for this medicine.</div> : null}
                 <div className="billing-batch-grid">
                   {(selectedMedicine.batches || []).map((batch) => {
                     const status = getBatchStatus(batch.expiryDate);
@@ -891,6 +820,8 @@ const BillingPage = () => {
                       <button
                         key={batch._id}
                         type="button"
+                        aria-pressed={medicineSelection.batchId === batch._id}
+                        aria-disabled={status === "Expired"}
                         className={`billing-batch-card ${medicineSelection.batchId === batch._id ? "active" : ""} ${
                           status === "Expired" ? "blocked" : ""
                         }`}
@@ -907,7 +838,7 @@ const BillingPage = () => {
                           <Badge tone={getBatchTone(status)}>{status}</Badge>
                         </div>
                         <span>Expiry: {formatDate(batch.expiryDate)}</span>
-                        <span>Stock: {batch.quantity || 0}</span>
+                        <span>Stock: {batch.quantity || 0}{Number(batch.quantity || 0) <= 0 ? " ? Out of stock" : ""}</span>
                         <span>MRP: {formatCurrency(batch.mrp || selectedMedicine.mrp || 0)}</span>
                       </button>
                     );
@@ -960,7 +891,7 @@ const BillingPage = () => {
                     Clear Cart
                   </button>
                   <button type="button" className="ghost-button" onClick={handleLoadDraft}>
-                    Hold Bill
+                    Restore Draft
                   </button>
                 </div>
               </div>
@@ -968,15 +899,12 @@ const BillingPage = () => {
               <div className="feature-item">Select a medicine to view live batches, expiry, GST, and pricing.</div>
             )}
           </SectionCard>
-
           <SectionCard title="Billing Cart" className="billing-card">
             <div className="table-wrap">
               <table className="data-table billing-cart-table">
                 <thead>
                   <tr>
                     <th>Medicine</th>
-                    <th>Generic</th>
-                    <th>Company</th>
                     <th>Batch</th>
                     <th>Expiry</th>
                     <th>Quantity</th>
@@ -996,11 +924,10 @@ const BillingPage = () => {
 
                       return (
                         <tr key={`${item.medicineId}-${item.batchId}`}>
-                          <td>{item.medicineName}</td>
-                          <td>{item.genericName || "-"}</td>
-                          <td>{item.company || "-"}</td>
+                          <td className="billing-cart-medicine"><strong>{item.medicineName}</strong><small>{[item.genericName, item.company].filter(Boolean).join(" ? ")}</small></td>
                           <td>
                             <select
+                              aria-label={`Batch for ${item.medicineName}`}
                               value={item.batchId}
                               onChange={(event) => handleUpdateCartItem(index, "batchId", event.target.value)}
                             >
@@ -1026,6 +953,7 @@ const BillingPage = () => {
                               type="number"
                               min="1"
                               max={item.availableStock}
+                              aria-label={`Quantity for ${item.medicineName}`}
                               value={item.quantity}
                               onChange={(event) => handleUpdateCartItem(index, "quantity", event.target.value)}
                             />
@@ -1035,6 +963,7 @@ const BillingPage = () => {
                             <input
                               type="number"
                               min="0"
+                              aria-label={`Discount for ${item.medicineName}`}
                               value={item.discount}
                               onChange={(event) => handleUpdateCartItem(index, "discount", event.target.value)}
                             />
@@ -1042,7 +971,7 @@ const BillingPage = () => {
                           <td>{item.gstPercent}%</td>
                           <td>{formatCurrency(line.totalAmount)}</td>
                           <td>
-                            <button type="button" className="text-button danger" onClick={() => handleRemoveCartItem(index)}>
+                            <button type="button" className="text-button danger" aria-label={`Remove ${item.medicineName}`} title="Remove item" onClick={() => handleRemoveCartItem(index)}>
                               <Trash2 size={14} />
                             </button>
                           </td>
@@ -1051,7 +980,7 @@ const BillingPage = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="11">
+                      <td colSpan="9">
                         <div className="empty-state">
                           <ReceiptText className="empty-state-icon" size={18} />
                           <div>
@@ -1067,7 +996,6 @@ const BillingPage = () => {
             </div>
           </SectionCard>
         </div>
-
         <div className="billing-column">
           <SectionCard title="Bill Summary & Payment" className="billing-card billing-summary-card">
             <div className="billing-summary-list">
@@ -1146,6 +1074,10 @@ const BillingPage = () => {
               </div>
             ) : null}
 
+            <div className="billing-summary-list compact">
+              <div className="billing-paid"><span>Amount paid</span><strong>{formatCurrency(billingForm.paidAmount)}</strong></div>
+              <div className="billing-due"><span>Outstanding</span><strong>{formatCurrency(summary.dueAmount)}</strong></div>
+            </div>
             <div className="billing-inline-badges">
               <Badge tone={summary.paymentStatus === "Paid" ? "success" : summary.paymentStatus === "Partial" ? "warning" : "danger"}>
                 {summary.paymentStatus}
@@ -1172,9 +1104,91 @@ const BillingPage = () => {
 
             <div className="billing-summary-actions">
               <button type="button" className="primary-button" onClick={handleCreateBill} disabled={submitting || !cartItems.length}>
-                {submitting ? "Creating..." : "Complete Payment / Create Bill"}
+                {submitting ? "Creating..." : "Create Bill"}
               </button>
-              <button type="button" className="ghost-button" onClick={handlePrintInvoice}>
+              <button type="button" className="ghost-button" onClick={handleSaveDraft}>
+                <Save size={16} />
+                <span>Save Draft</span>
+              </button>
+            </div>
+          </SectionCard>
+        </div>
+      </div>
+      <div className="billing-secondary-grid">
+          <SectionCard title="Due Tracking" className="billing-card">
+            <div className="billing-dues-list">
+              {dues.slice(0, 4).map((due) => (
+                <button
+                  key={due._id}
+                  type="button"
+                  className={`billing-due-item ${duePayment.dueId === due._id ? "active" : ""}`}
+                  onClick={() =>
+                    setDuePayment((current) => ({
+                      ...current,
+                      dueId: due._id,
+                      amount: due.dueAmount,
+                    }))
+                  }
+                >
+                  <div>
+                    <strong>{due.invoiceNo}</strong>
+                    <span>{due.customerName || "Walk-in Customer"}</span>
+                  </div>
+                  <Badge tone={due.status === "Closed" ? "success" : "warning"}>
+                    {formatCurrency(due.dueAmount)}
+                  </Badge>
+                </button>
+              ))}
+              {!dues.length ? <div className="feature-item">No open dues right now.</div> : null}
+            </div>
+
+            <div className="billing-form-grid billing-due-form">
+              <label className="billing-field">
+                <span>Pay Amount</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={duePayment.amount}
+                  onChange={(event) => setDuePayment((current) => ({ ...current, amount: event.target.value }))}
+                />
+              </label>
+              <label className="billing-field">
+                <span>Payment Mode</span>
+                <select
+                  value={duePayment.paymentMode}
+                  onChange={(event) =>
+                    setDuePayment((current) => ({
+                      ...current,
+                      paymentMode: event.target.value,
+                    }))
+                  }
+                >
+                  <option>Cash</option>
+                  <option>UPI</option>
+                  <option>Card</option>
+                </select>
+              </label>
+              <label className="billing-field billing-field-full">
+                <span>Transaction Ref</span>
+                <input
+                  value={duePayment.transactionRef}
+                  onChange={(event) =>
+                    setDuePayment((current) => ({
+                      ...current,
+                      transactionRef: event.target.value,
+                    }))
+                  }
+                  placeholder="Optional UPI/card reference"
+                />
+              </label>
+            </div>
+            <button type="button" className="primary-button" onClick={handlePayDue} disabled={submitting}>
+              Record Due Payment
+            </button>
+          </SectionCard>
+          <SectionCard title="Invoice Preview" className="billing-card">
+            <div className="action-row billing-invoice-actions">
+              <button type="button" className="ghost-button" onClick={handlePrintInvoice} disabled={!activeInvoice}>
                 <Printer size={16} />
                 <span>Print Invoice</span>
               </button>
@@ -1187,14 +1201,7 @@ const BillingPage = () => {
                 <Download size={16} />
                 <span>{downloadingId === activeInvoice?._id ? "Downloading..." : "Download PDF"}</span>
               </button>
-              <button type="button" className="ghost-button" onClick={handleSaveDraft}>
-                <Save size={16} />
-                <span>Save Draft</span>
-              </button>
             </div>
-          </SectionCard>
-
-          <SectionCard title="Invoice Preview" className="billing-card">
             {activeInvoice ? (
               <div className="billing-invoice-preview">
                 <div className="billing-preview-head">
@@ -1211,6 +1218,9 @@ const BillingPage = () => {
                   <span>Customer: {activeInvoice.customerName || "Walk-in Customer"}</span>
                   <span>Mobile: {activeInvoice.customerMobile || "-"}</span>
                   <span>Doctor: {activeInvoice.doctorName || "-"}</span>
+                  <span>Payment: {activeInvoice.paymentMode || "-"}</span>
+                  {activeInvoice.transactionRef ? <span>Reference: {activeInvoice.transactionRef}</span> : null}
+                  {activeInvoice.splitPayments?.map((payment, index) => <span key={index}>{payment.mode}: {formatCurrency(payment.amount)}</span>)}
                 </div>
 
                 <div className="billing-preview-items">
@@ -1231,9 +1241,9 @@ const BillingPage = () => {
                   <div><span>Subtotal</span><strong>{formatCurrency(activeInvoice.subtotal)}</strong></div>
                   <div><span>Discount</span><strong>{formatCurrency(activeInvoice.discountTotal)}</strong></div>
                   <div><span>GST</span><strong>{formatCurrency(activeInvoice.gstTotal)}</strong></div>
-                  <div><span>Grand Total</span><strong>{formatCurrency(activeInvoice.grandTotal)}</strong></div>
-                  <div><span>Paid</span><strong>{formatCurrency(activeInvoice.paidAmount)}</strong></div>
-                  <div><span>Due</span><strong>{formatCurrency(activeInvoice.dueAmount)}</strong></div>
+                  <div className="billing-summary-total"><span>Grand Total</span><strong>{formatCurrency(activeInvoice.grandTotal)}</strong></div>
+                  <div className="billing-paid"><span>Paid</span><strong>{formatCurrency(activeInvoice.paidAmount)}</strong></div>
+                  <div className="billing-due"><span>Due</span><strong>{formatCurrency(activeInvoice.dueAmount)}</strong></div>
                 </div>
                 <div className="feature-item">Thank you. Returns are subject to pharmacy policy and item condition.</div>
               </div>
@@ -1241,7 +1251,6 @@ const BillingPage = () => {
               <div className="feature-item">Your latest invoice preview will appear here after billing.</div>
             )}
           </SectionCard>
-        </div>
       </div>
 
       {returnOpen ? (
@@ -1344,7 +1353,7 @@ const BillingPage = () => {
 
       <SectionCard title="Sales Records" className="billing-card">
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table billing-history-table">
             <thead>
               <tr>
                 <th>Invoice</th>
@@ -1358,9 +1367,10 @@ const BillingPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!invoices.length ? <tr><td colSpan="8"><div className="empty-state">No invoices yet. Completed bills will appear here.</div></td></tr> : null}
               {invoices.map((invoice) => (
-                <tr key={invoice._id} onClick={() => setActiveInvoice(invoice)} className="billing-row-clickable">
-                  <td>{invoice.invoiceNo}</td>
+                <tr key={invoice._id} onClick={() => setActiveInvoice(invoice)} className={`billing-row-clickable ${activeInvoice?._id === invoice._id ? "active" : ""}`}>
+                  <td><button type="button" className="text-button" aria-pressed={activeInvoice?._id === invoice._id} onClick={() => setActiveInvoice(invoice)}>{invoice.invoiceNo}</button><small>{formatDate(invoice.createdAt)}</small></td>
                   <td>{invoice.customerName || "Walk-in Customer"}</td>
                   <td>{invoice.items?.length || 0}</td>
                   <td>{formatCurrency(invoice.gstTotal)}</td>

@@ -71,6 +71,7 @@ const InventoryReturnsPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!returns.length ? <tr><td colSpan={8} className="muted">No matching records.</td></tr> : null}
               {returns.map((item) => (
                 <tr key={item.id}>
                   <td>{item.id}</td>

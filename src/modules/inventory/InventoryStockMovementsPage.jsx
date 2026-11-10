@@ -1,3 +1,4 @@
+import { formatDate } from "../../shared/utils/format";
 import { Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import Badge from "../../shared/components/Badge";
@@ -74,7 +75,7 @@ const InventoryStockMovementsPage = () => {
 
       <SectionCard title="Movement Register">
         <div className="inventory-filter-row">
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+          <select aria-label="Movement type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
             <option value="">All Types</option>
             {["Stock In", "Stock Out", "Adjustment", "Return", "Expired Removal"].map((item) => (
               <option key={item} value={item}>
@@ -82,7 +83,7 @@ const InventoryStockMovementsPage = () => {
               </option>
             ))}
           </select>
-          <select value={medicineFilter} onChange={(event) => setMedicineFilter(event.target.value)}>
+          <select aria-label="Medicine" value={medicineFilter} onChange={(event) => setMedicineFilter(event.target.value)}>
             <option value="">All Medicines</option>
             {medicines.map((medicine) => (
               <option key={medicine.id} value={medicine.id}>
@@ -90,7 +91,7 @@ const InventoryStockMovementsPage = () => {
               </option>
             ))}
           </select>
-          <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
+          <input aria-label="Movement date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
         </div>
 
         <div className="inventory-table-wrap">
@@ -107,9 +108,10 @@ const InventoryStockMovementsPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!filteredMovements.length ? <tr><td colSpan={7} className="muted">No matching records.</td></tr> : null}
               {filteredMovements.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.date}</td>
+                  <td>{formatDate(item.date)}</td>
                   <td>{item.medicineName}</td>
                   <td>{item.batchNumber}</td>
                   <td>

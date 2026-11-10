@@ -1,15 +1,22 @@
-import { motion } from "framer-motion";
-import { ChevronDown, Headphones, Plus, X } from "lucide-react";
+import { useEffect } from "react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { navItems } from "../../core/config/navigation";
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnEscape = (event) => { if (event.key === "Escape") onClose(); };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen, onClose]);
+
   return (
     <>
       <div className={`sidebar-backdrop ${isOpen ? "show" : ""}`} onClick={onClose} />
-      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+      <aside id="workspace-navigation" aria-label="Workspace navigation" className={`sidebar ${isOpen ? "open" : ""}`}>
         <div className="brand-block">
           <span className="brand-mark" aria-hidden="true">
             <Plus size={20} />
@@ -17,27 +24,27 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="brand-copy">
             <strong>AYRA</strong>
             <strong>CLINIC ERP</strong>
-            <p>Pharmacy-first SaaS</p>
+            <p>Clinic workspace</p>
           </div>
           <button type="button" className="sidebar-close" onClick={onClose} aria-label="Close sidebar">
             <X size={18} />
           </button>
         </div>
 
-        <nav className="sidebar-nav">
-          {navItems.map((item, index) => {
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isParentActive = item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path);
 
             return (
-              <motion.div
+              <div
                 key={item.path}
                 className={`nav-group ${isParentActive ? "expanded" : ""}`}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.03 }}
               >
-                <NavLink to={item.path} onClick={onClose} className={`nav-item ${isParentActive ? "active" : ""}`}>
+                {item.path === "/" || item.path === "/reports" || item.path === "/settings" ? (
+                  <span className="nav-section-label">{item.path === "/" ? "Workspace" : item.path === "/reports" ? "Management" : "Administration"}</span>
+                ) : null}
+                <NavLink end={item.path === "/"} to={item.path} onClick={onClose} className={`nav-item ${isParentActive ? "active" : ""}`}>
                   <Icon size={18} />
                   <span>{item.label}</span>
                   {item.children?.length ? <ChevronDown size={16} className="nav-item-chevron" /> : null}
@@ -57,25 +64,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                     ))}
                   </div>
                 ) : null}
-              </motion.div>
+              </div>
             );
           })}
         </nav>
 
         <div className="sidebar-footer-stack">
-          <div className="sidebar-footer">
-            <span className="eyebrow">CARE-READY WORKFLOW</span>
-            <p>Inventory, clinic, billing, and alert operations stay in one compact workspace.</p>
-          </div>
-          <div className="sidebar-footer sidebar-footer-help">
-            <div className="sidebar-help-head">
-              <span className="sidebar-help-icon">
-                <Headphones size={16} />
-              </span>
-              <span className="eyebrow">Need Help?</span>
-            </div>
-            <p>Use the support workspace when your team needs help with workflow or setup.</p>
-          </div>
+          <span className="eyebrow">AYRA Clinic ERP</span>
         </div>
       </aside>
     </>

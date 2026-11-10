@@ -1,3 +1,4 @@
+import { formatDate } from "../../shared/utils/format";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import Badge from "../../shared/components/Badge";
@@ -62,9 +63,10 @@ const InventoryAdjustmentsPage = () => {
               </tr>
             </thead>
             <tbody>
+              {!adjustments.length ? <tr><td colSpan={8} className="muted">No matching records.</td></tr> : null}
               {adjustments.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.date}</td>
+                  <td>{formatDate(item.date)}</td>
                   <td>{item.medicineName}</td>
                   <td>{item.batchNumber}</td>
                   <td>{item.oldQty}</td>

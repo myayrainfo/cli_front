@@ -1,6 +1,7 @@
+import EmptyState from "../../../shared/components/EmptyState";
 import { AlertTriangle } from "lucide-react";
 
-const RecentAlertsCard = ({ alerts, onViewAll }) => (
+const RecentAlertsCard = ({ alerts, onViewAll, error }) => (
   <section className="card dashboard-operations-card">
     <div className="dashboard-card-toolbar">
       <div className="dashboard-card-heading">
@@ -16,6 +17,10 @@ const RecentAlertsCard = ({ alerts, onViewAll }) => (
       </button>
     </div>
 
+    {error || !alerts.length ? <EmptyState
+      title={error ? "Unable to load activity" : "No activity yet"}
+      description={error || "Records will appear here when available."}
+    /> : (
     <div className="dashboard-alert-rows">
       {alerts.map((alert) => (
         <div key={`${alert.title}-${alert.time}`} className="dashboard-alert-item">
@@ -30,6 +35,7 @@ const RecentAlertsCard = ({ alerts, onViewAll }) => (
         </div>
       ))}
     </div>
+    )}
   </section>
 );
 

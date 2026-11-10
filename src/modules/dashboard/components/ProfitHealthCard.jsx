@@ -7,12 +7,12 @@ const ProfitHealthCard = ({ profitValue, supplierDues, customerDues }) => (
         <Wallet size={16} />
       </span>
       <div>
-        <h3>Profit Health</h3>
+        <h3>Financial Summary</h3>
         <p>Net Position</p>
       </div>
     </div>
     <strong className="dashboard-health-value">{profitValue}</strong>
-    <p className="dashboard-health-note">Below purchase spend today</p>
+    <p className="dashboard-health-note">All-time sales less purchases</p>
     <div className="dashboard-mini-card-stats compact">
       <div>
         <span>Supplier Dues</span>
